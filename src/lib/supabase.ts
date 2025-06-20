@@ -52,7 +52,7 @@ function handleDatabaseError(operation: string, error: any): Error {
     );
   }
   if (message.includes("permission denied")) {
-    return new Error("ليس لديك صلاحية للوصول إلى هذه البيانات.");
+    return new Error("ليس لديك صلاحية ل��وصول إلى هذه البيانات.");
   }
   if (message.includes("connection")) {
     return new Error("خطأ في الاتصال بقاعدة البيانات. تحقق من الإنترنت.");
@@ -311,7 +311,7 @@ export const dbHelpers = {
         throw handleDatabaseError("تحديث المشترك", error);
       }
 
-      console.log("✅ تم تحديث المشترك بنجا��");
+      console.log("✅ تم تحديث المشترك بنجاح");
       return { data: data || [], error: null };
     } catch (error: any) {
       return { data: null, error: handleDatabaseError("تحديث المشترك", error) };
@@ -367,7 +367,20 @@ export const dbHelpers = {
     try {
       console.log("🗑️ التحقق من إمكانية حذف المشترك:", id);
 
-      // أولاً، تحقق من وجود مبيعات مرتبطة بالمشترك
+      // أولاً، جلب بيانات المشترك للحصول على الاسم
+      const { data: subscriber, error: subscriberError } = await supabase
+        .from("subscribers")
+        .select("name")
+        .eq("id", id)
+        .single();
+
+      if (subscriberError) {
+        console.warn("⚠️ خطأ في جلب بيانات المشترك:", subscriberError.message);
+      }
+
+      const subscriberName = subscriber?.name || "مشترك سابق";
+
+      // تحقق من وجود مبيعات مرتبطة بالمشترك
       const { data: relatedSales, error: salesCheckError } = await supabase
         .from("sales")
         .select("id")
@@ -377,7 +390,7 @@ export const dbHelpers = {
         console.warn("⚠️ خطأ في فحص المبيعات:", salesCheckError.message);
       }
 
-      // إذا كان هناك مبيعات مرتبطة، نقوم بتحديث subscriber_id إلى null
+      // إذا كان هناك مبيعات مرتبطة، نقوم بتحديث subscriber_id إلى null وإضافة اسم المشترك
       if (relatedSales && relatedSales.length > 0) {
         console.log(
           `📋 تم العثور على ${relatedSales.length} مبيعة مرتبطة، سيتم فصلها عن المشترك`,
@@ -385,13 +398,18 @@ export const dbHelpers = {
 
         const { error: updateSalesError } = await supabase
           .from("sales")
-          .update({ subscriber_id: null })
+          .update({
+            subscriber_id: null,
+            customer_name: subscriberName,
+          })
           .eq("subscriber_id", id);
 
         if (updateSalesError) {
           console.warn("⚠️ خطأ في تحديث المبيعات:", updateSalesError.message);
+          // إذا فشل التحديث، لا نتابع مع الحذف
+          throw updateSalesError;
         } else {
-          console.log("✅ تم فصل ال��بيعات عن المشترك");
+          console.log("✅ تم فصل المبيعات عن المشترك وتحديث اسم الزبون");
         }
       }
 
@@ -474,7 +492,7 @@ export const dbHelpers = {
     formData: CourseFormData,
   ): Promise<SupabaseResponse<CoursePoint[]>> {
     try {
-      console.log("📝 إنشاء نقطة تمرين:", formData.name);
+      console.log("📝 إنشاء نق��ة تمرين:", formData.name);
 
       const courseData = {
         ...formData,
@@ -866,7 +884,7 @@ export const dbHelpers = {
             console.warn("⚠️ تحذير: لم يتم تحديث المخزون:", stockError.message);
           }
         } catch (stockError) {
-          console.warn("⚠️ تحذير: خطأ في ت��ديث المخزون:", stockError);
+          console.warn("⚠️ تحذير: خطأ في تحديث المخزون:", stockError);
         }
       }
 
