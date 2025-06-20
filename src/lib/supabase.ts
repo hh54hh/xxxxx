@@ -116,7 +116,7 @@ export const dbHelpers = {
       try {
         console.log("🔍 جلب المجموعات للمشترك:", id);
 
-        // جلب المجموعات أولاً
+        // جلب المجموعات مع عناصرها باستخدام الجداول الجديدة
         const { data: groupsData, error: groupsError } = await supabase
           .from("groups")
           .select("*")
@@ -129,47 +129,53 @@ export const dbHelpers = {
         // جلب عناصر كل مجموعة مع تفاصيلها
         const groupsWithItems = await Promise.all(
           (groupsData || []).map(async (group) => {
-            // جلب عناصر المجموعة
-            const { data: groupItems } = await supabase
-              .from("group_items")
-              .select("*")
-              .eq("group_id", group.id);
+            let items: any[] = [];
 
-            if (!groupItems) return { ...group, items: [] };
+            if (group.type === "course") {
+              // جلب العناصر التدريبية
+              const { data: courseItems } = await supabase
+                .from("group_course_items")
+                .select(
+                  `
+                  *,
+                  course_points (*)
+                `,
+                )
+                .eq("group_id", group.id);
 
-            // جلب تفاصيل العناصر حسب نوع المجموعة
-            const itemsWithDetails = await Promise.all(
-              groupItems.map(async (item) => {
-                if (group.type === "course") {
-                  const { data: coursePoint } = await supabase
-                    .from("course_points")
-                    .select("*")
-                    .eq("id", item.item_id)
-                    .single();
-                  return {
-                    ...item,
-                    course_point: coursePoint,
-                    diet_item: null,
-                  };
-                } else if (group.type === "diet") {
-                  const { data: dietItem } = await supabase
-                    .from("diet_items")
-                    .select("*")
-                    .eq("id", item.item_id)
-                    .single();
-                  return {
-                    ...item,
-                    course_point: null,
-                    diet_item: dietItem,
-                  };
-                }
-                return item;
-              }),
-            );
+              items = (courseItems || []).map((item) => ({
+                id: item.id,
+                group_id: item.group_id,
+                item_id: item.course_point_id,
+                created_at: item.created_at,
+                course_point: item.course_points,
+                diet_item: null,
+              }));
+            } else if (group.type === "diet") {
+              // جلب العناصر الغذائية
+              const { data: dietItems } = await supabase
+                .from("group_diet_items")
+                .select(
+                  `
+                  *,
+                  diet_items (*)
+                `,
+                )
+                .eq("group_id", group.id);
+
+              items = (dietItems || []).map((item) => ({
+                id: item.id,
+                group_id: item.group_id,
+                item_id: item.diet_item_id,
+                created_at: item.created_at,
+                course_point: null,
+                diet_item: item.diet_items,
+              }));
+            }
 
             return {
               ...group,
-              group_items: itemsWithDetails,
+              group_items: items,
             };
           }),
         );
@@ -435,7 +441,7 @@ export const dbHelpers = {
         return {
           data: null,
           error: new Error(
-            "لا يمكن حذف المشترك لأنه مرتبط بمبيعات أو بيانات أخرى. تم تحديث قاعدة البيانات، يرجى المحاولة مرة أخرى.",
+            "لا يمكن حذف المشترك لأنه مرتبط بمبيعات أو بيانات أخرى. تم تحديث قاع��ة البيانات، يرجى المحاولة مرة أخرى.",
           ),
         };
       }
@@ -555,7 +561,7 @@ export const dbHelpers = {
     }
   },
 
-  // ==================== الع��ليات على ��ناصر النظام الغذائي ====================
+  // ==================== الع��ليات على عناصر النظام الغذائي ====================
 
   async getDietItems(): Promise<SupabaseResponse<DietItem[]>> {
     try {
@@ -744,7 +750,7 @@ export const dbHelpers = {
 
   async deleteProduct(id: string): Promise<SupabaseResponse<void>> {
     try {
-      console.log("🗑️ حذف المنتج:", id);
+      console.log("🗑�� حذف المنتج:", id);
 
       const { error } = await supabase.from("products").delete().eq("id", id);
 
@@ -822,7 +828,7 @@ export const dbHelpers = {
         updated_at: new Date().toISOString(),
       };
 
-      // إنشاء المبيع��
+      // إنشاء المبيعة
       const { data: saleResult, error: saleError } = await supabase
         .from("sales")
         .insert([saleData])
@@ -906,7 +912,7 @@ export const dbHelpers = {
     }
   },
 
-  // ==================== العمليات على الم��موعات ====================
+  // ==================== العمليات على المجموعات ====================
 
   async createGroup(data: {
     subscriber_id: string;
@@ -1041,7 +1047,7 @@ export const dbHelpers = {
             courseGroupsCreated++;
           }
         } else {
-          console.log(`⚠️ مجموعة كورسات ${index + 1} فارغة، تم تجاهلها`);
+          console.log(`⚠️ مجموعة كورس��ت ${index + 1} فارغة، تم تجاهلها`);
         }
       }
 
@@ -1064,7 +1070,7 @@ export const dbHelpers = {
 
           if (groupResponse.error) {
             console.error(
-              "❌ خطأ في إنشا�� مجموعة الأنظمة الغذائية:",
+              "❌ خطأ في إنشاء مجموعة الأنظمة الغذائية:",
               groupResponse.error,
             );
             throw groupResponse.error;
