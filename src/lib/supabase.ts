@@ -116,19 +116,65 @@ export const dbHelpers = {
       try {
         console.log("🔍 جلب المجموعات للمشترك:", id);
 
+        // جلب المجموعات أولاً
         const { data: groupsData, error: groupsError } = await supabase
           .from("groups")
-          .select(
-            `
-            *,
-            group_items (
-              *,
-              course_points (*),
-              diet_items (*)
-            )
-          `,
-          )
+          .select("*")
           .eq("subscriber_id", id);
+
+        if (groupsError) {
+          throw groupsError;
+        }
+
+        // جلب عناصر كل مجموعة مع تفاصيلها
+        const groupsWithItems = await Promise.all(
+          (groupsData || []).map(async (group) => {
+            // جلب عناصر المجموعة
+            const { data: groupItems } = await supabase
+              .from("group_items")
+              .select("*")
+              .eq("group_id", group.id);
+
+            if (!groupItems) return { ...group, items: [] };
+
+            // جلب تفاصيل العناصر حسب نوع المجموعة
+            const itemsWithDetails = await Promise.all(
+              groupItems.map(async (item) => {
+                if (group.type === "course") {
+                  const { data: coursePoint } = await supabase
+                    .from("course_points")
+                    .select("*")
+                    .eq("id", item.item_id)
+                    .single();
+                  return {
+                    ...item,
+                    course_point: coursePoint,
+                    diet_item: null,
+                  };
+                } else if (group.type === "diet") {
+                  const { data: dietItem } = await supabase
+                    .from("diet_items")
+                    .select("*")
+                    .eq("id", item.item_id)
+                    .single();
+                  return {
+                    ...item,
+                    course_point: null,
+                    diet_item: dietItem,
+                  };
+                }
+                return item;
+              }),
+            );
+
+            return {
+              ...group,
+              group_items: itemsWithDetails,
+            };
+          }),
+        );
+
+        groups = groupsWithItems;
 
         if (groupsError) {
           const errorMessage = getErrorMessage(groupsError);
@@ -509,7 +555,7 @@ export const dbHelpers = {
     }
   },
 
-  // ==================== الع��ليات على عناصر النظام الغذائي ====================
+  // ==================== الع��ليات على ��ناصر النظام الغذائي ====================
 
   async getDietItems(): Promise<SupabaseResponse<DietItem[]>> {
     try {
@@ -776,7 +822,7 @@ export const dbHelpers = {
         updated_at: new Date().toISOString(),
       };
 
-      // إنشاء المبيعة
+      // إنشاء المبيع��
       const { data: saleResult, error: saleError } = await supabase
         .from("sales")
         .insert([saleData])
@@ -860,7 +906,7 @@ export const dbHelpers = {
     }
   },
 
-  // ==================== العمليات على المجموعات ====================
+  // ==================== العمليات على الم��موعات ====================
 
   async createGroup(data: {
     subscriber_id: string;
@@ -1018,7 +1064,7 @@ export const dbHelpers = {
 
           if (groupResponse.error) {
             console.error(
-              "❌ خطأ في إنشاء مجموعة الأنظمة الغذائية:",
+              "❌ خطأ في إنشا�� مجموعة الأنظمة الغذائية:",
               groupResponse.error,
             );
             throw groupResponse.error;
