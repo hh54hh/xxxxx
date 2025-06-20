@@ -45,7 +45,7 @@ function handleDatabaseError(operation: string, error: any): Error {
   const message = getErrorMessage(error);
   console.error(`❌ خطأ في ${operation}:`, message);
 
-  // تح��ين رسائل الخطأ للمستخدم
+  // تحسين رسائل الخطأ للمستخدم
   if (message.includes("does not exist")) {
     return new Error(
       "الجدول المطلوب غير موجود في قاعدة البيانات. يرجى إنشاء الجداول أولاً.",
@@ -385,7 +385,7 @@ export const dbHelpers = {
       // إذا كان هناك مبيعات مرتبطة، نقوم بتحديث subscriber_id إلى null
       if (relatedSales && relatedSales.length > 0) {
         console.log(
-          `📋 تم العثور على ${relatedSales.length} مبيعة مرتبطة، سيتم فصلها عن المشترك`,
+          `📋 تم العثور على ${relatedSales.length} مبيعة مرتبطة، سيتم فصلها عن ال��شترك`,
         );
 
         const { error: updateSalesError } = await supabase
@@ -465,7 +465,7 @@ export const dbHelpers = {
         throw handleDatabaseError("جلب نقاط التمرين", error);
       }
 
-      console.log(`✅ تم جلب ${data?.length || 0} نقطة تمرين`);
+      console.log(`✅ تم جلب ${data?.length || 0} نقطة تمر��ن`);
       return { data: data || [], error: null };
     } catch (error: any) {
       return {
@@ -712,7 +712,7 @@ export const dbHelpers = {
         throw handleDatabaseError("��نشاء منتج", error);
       }
 
-      console.log("✅ تم إنشاء المنت�� بنجاح");
+      console.log("✅ ت�� إنشاء المنتج بنجاح");
       return { data: data || [], error: null };
     } catch (error: any) {
       return { data: null, error: handleDatabaseError("إنشاء منتج", error) };
@@ -758,7 +758,7 @@ export const dbHelpers = {
         throw handleDatabaseError("حذف المنتج", error);
       }
 
-      console.log("✅ تم ح��ف المنتج بنجاح");
+      console.log("✅ تم حذف المنتج بنجاح");
       return { data: null, error: null };
     } catch (error: any) {
       return { data: null, error: handleDatabaseError("حذف المنتج", error) };
@@ -1055,6 +1055,7 @@ export const dbHelpers = {
             const itemsResponse = await this.createGroupItems({
               group_id: groupId,
               item_ids: courseGroup.selectedCourses,
+              type: "course",
             });
 
             if (itemsResponse.error) {
