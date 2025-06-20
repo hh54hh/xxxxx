@@ -144,11 +144,10 @@ export const dbHelpers = {
               message: errorMessage,
               code: groupsError?.code,
               details: groupsError?.details,
-              hint: groupsError?.hint
+              hint: groupsError?.hint,
             });
             throw groupsError;
           }
-        }
         } else {
           groups = groupsData || [];
           console.log(`✅ تم جلب ${groups.length} مجموعة`);
@@ -171,7 +170,7 @@ export const dbHelpers = {
           message: errorMessage,
           code: groupsError?.code,
           details: groupsError?.details,
-          hint: groupsError?.hint
+          hint: groupsError?.hint,
         });
         groups = [];
       }
@@ -428,7 +427,7 @@ export const dbHelpers = {
         .select();
 
       if (error) {
-        throw handleDatabaseError("إنشاء نقطة تمرين", error);
+        throw handleDatabaseError("إنشاء نقطة ت��رين", error);
       }
 
       console.log("✅ تم إنشاء نقطة التمرين بنجاح");
@@ -920,7 +919,7 @@ export const dbHelpers = {
     dietGroups: Array<{ title?: string; selectedItems: string[] }>;
   }): Promise<SupabaseResponse<any>> {
     try {
-      console.log("📝 إنشاء مشت��ك مع المجموعات:", data.subscriber.name);
+      console.log("📝 إنشاء مشترك مع المجموعات:", data.subscriber.name);
       console.log("📋 مجموعات الكورسات:", data.courseGroups);
       console.log("📋 مجموعات الأنظمة الغذائية:", data.dietGroups);
 
