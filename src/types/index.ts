@@ -18,8 +18,9 @@ export interface Group {
   title?: string;
   created_at: string;
   updated_at: string;
+  items?: GroupItem[];
+  group_items?: GroupItem[];
 }
-
 export interface GroupItem {
   id: string;
   group_id: string;
