@@ -52,7 +52,7 @@ function handleDatabaseError(operation: string, error: any): Error {
     );
   }
   if (message.includes("permission denied")) {
-    return new Error("ليس لديك صلاحية ل��وصول إلى هذه البيانات.");
+    return new Error("ليس لديك صلاحية للوصول إلى هذه البيانات.");
   }
   if (message.includes("connection")) {
     return new Error("خطأ في الاتصال بقاعدة البيانات. تحقق من الإنترنت.");
@@ -413,35 +413,31 @@ export const dbHelpers = {
         }
       }
 
-      // الآن حذف المجموعات المرتبطة (groups و group_items)
-      const { error: groupsDeleteError } = await supabase
-        .from("groups")
-        .delete()
-        .eq("subscriber_id", id);
+      // استخدام الدالة الآمنة لحذف المشترك (إذا كانت متاحة)
+      try {
+        const { error: safeDeleteError } = await supabase.rpc(
+          "safe_delete_subscriber",
+          { subscriber_id_param: id },
+        );
 
-      if (groupsDeleteError) {
-        console.warn("⚠️ خطأ في حذف المجموعات:", groupsDeleteError.message);
-      } else {
-        console.log("✅ تم حذف المجموعات المرتبطة");
-      }
-
-      // أخيراً، حذف المشترك
-      const { error } = await supabase
-        .from("subscribers")
-        .delete()
-        .eq("id", id);
-
-      if (error) {
-        // إذا كان الخطأ بسبب foreign key constraint، نعطي رسالة واضحة
-        if (error.message.includes("foreign key constraint")) {
-          throw new Error(
-            "لا يمكن حذف المشترك لأنه مرتبط ببيانات أخرى. يرجى المحاولة مرة أخرى أو الاتصال بالدعم الفني.",
+        if (safeDeleteError) {
+          console.warn(
+            "⚠️ الدالة الآمنة غير متاحة، استخدام الطريقة العادية:",
+            safeDeleteError.message,
           );
+
+          // استخدام الطريقة العادية كبديل
+          await this.deleteSubscriberManually(id, subscriberName);
+        } else {
+          console.log("✅ تم حذف المشترك بنجاح باستخدام الدالة الآمنة");
         }
-        throw handleDatabaseError("حذف المشترك", error);
+      } catch (rpcError: any) {
+        console.warn(
+          "⚠️ فشل في استخدام الدالة الآمنة، استخدام الطريقة العادية",
+        );
+        await this.deleteSubscriberManually(id, subscriberName);
       }
 
-      console.log("✅ تم حذف المشترك بنجاح");
       return { data: null, error: null };
     } catch (error: any) {
       console.error("❌ فشل في حذف المشترك:", error);
@@ -449,18 +445,46 @@ export const dbHelpers = {
       // تحسين رسالة الخطأ للمستخدم
       if (
         error.message.includes("foreign key constraint") ||
-        error.message.includes("violates")
+        error.message.includes("violates") ||
+        error.message.includes("check constraint")
       ) {
         return {
           data: null,
           error: new Error(
-            "لا يمكن حذف المشترك لأنه مرتبط بمبيعات أو بيانات أخرى. تم تحديث قاعدة البيانات، يرجى المحاولة مرة أخرى.",
+            "لا يمكن حذف المشترك لأنه مرتبط بمبيعات أو بيانات أخرى. يرجى تشغيل سكريپت fix-sales-constraint.sql أولاً.",
           ),
         };
       }
 
       return { data: null, error: handleDatabaseError("حذف المشترك", error) };
     }
+  },
+
+  // دالة مساعدة لحذف المشترك يدوياً
+  async deleteSubscriberManually(
+    id: string,
+    subscriberName: string,
+  ): Promise<void> {
+    // حذف المجموعات المرتبطة
+    const { error: groupsDeleteError } = await supabase
+      .from("groups")
+      .delete()
+      .eq("subscriber_id", id);
+
+    if (groupsDeleteError) {
+      console.warn("⚠️ خطأ في حذف المجموعات:", groupsDeleteError.message);
+    } else {
+      console.log("✅ تم حذف المجموعات المرتبطة");
+    }
+
+    // حذف المشترك
+    const { error } = await supabase.from("subscribers").delete().eq("id", id);
+
+    if (error) {
+      throw handleDatabaseError("حذف المشترك", error);
+    }
+
+    console.log("✅ تم حذف المشترك بنجاح:", subscriberName);
   },
 
   // ==================== العمليات على نقاط التمرين ====================
@@ -492,7 +516,7 @@ export const dbHelpers = {
     formData: CourseFormData,
   ): Promise<SupabaseResponse<CoursePoint[]>> {
     try {
-      console.log("📝 إنشاء نق��ة تمرين:", formData.name);
+      console.log("📝 إنشاء نقطة تمرين:", formData.name);
 
       const courseData = {
         ...formData,
