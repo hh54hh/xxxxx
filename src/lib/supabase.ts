@@ -116,7 +116,7 @@ export const dbHelpers = {
       try {
         console.log("🔍 جلب المجموعات للمشترك:", id);
 
-        // جلب المجموعات مع عناصرها باستخدام الجداول الجديدة
+        // جلب المجموعات أولاً
         const { data: groupsData, error: groupsError } = await supabase
           .from("groups")
           .select("*")
@@ -126,14 +126,17 @@ export const dbHelpers = {
           throw groupsError;
         }
 
+        console.log(`📊 تم العثور على ${groupsData?.length || 0} مجموعة`);
+
         // جلب عناصر كل مجموعة مع تفاصيلها
         const groupsWithItems = await Promise.all(
           (groupsData || []).map(async (group) => {
+            console.log(`🔍 جلب عناصر المجموعة ${group.type}:`, group.title);
             let items: any[] = [];
 
             if (group.type === "course") {
               // جلب العناصر التدريبية
-              const { data: courseItems } = await supabase
+              const { data: courseItems, error: courseError } = await supabase
                 .from("group_course_items")
                 .select(
                   `
@@ -143,17 +146,24 @@ export const dbHelpers = {
                 )
                 .eq("group_id", group.id);
 
-              items = (courseItems || []).map((item) => ({
-                id: item.id,
-                group_id: item.group_id,
-                item_id: item.course_point_id,
-                created_at: item.created_at,
-                course_point: item.course_points,
-                diet_item: null,
-              }));
+              if (courseError) {
+                console.error("خطأ في جلب العناصر التدريبية:", courseError);
+              } else {
+                console.log(
+                  `📋 تم جلب ${courseItems?.length || 0} عنصر تدريبي`,
+                );
+                items = (courseItems || []).map((item) => ({
+                  id: item.id,
+                  group_id: item.group_id,
+                  item_id: item.course_point_id,
+                  created_at: item.created_at,
+                  course_point: item.course_points,
+                  diet_item: null,
+                }));
+              }
             } else if (group.type === "diet") {
               // جلب العناصر الغذائية
-              const { data: dietItems } = await supabase
+              const { data: dietItems, error: dietError } = await supabase
                 .from("group_diet_items")
                 .select(
                   `
@@ -163,16 +173,24 @@ export const dbHelpers = {
                 )
                 .eq("group_id", group.id);
 
-              items = (dietItems || []).map((item) => ({
-                id: item.id,
-                group_id: item.group_id,
-                item_id: item.diet_item_id,
-                created_at: item.created_at,
-                course_point: null,
-                diet_item: item.diet_items,
-              }));
+              if (dietError) {
+                console.error("خطأ في جلب العناصر الغذائية:", dietError);
+              } else {
+                console.log(`🥗 تم جلب ${dietItems?.length || 0} عنصر غذائي`);
+                items = (dietItems || []).map((item) => ({
+                  id: item.id,
+                  group_id: item.group_id,
+                  item_id: item.diet_item_id,
+                  created_at: item.created_at,
+                  course_point: null,
+                  diet_item: item.diet_items,
+                }));
+              }
             }
 
+            console.log(
+              `✅ مجموعة ${group.title} تحتوي على ${items.length} عنصر`,
+            );
             return {
               ...group,
               group_items: items,
@@ -181,46 +199,23 @@ export const dbHelpers = {
         );
 
         groups = groupsWithItems;
+        console.log(`✅ تم جلب ${groups.length} مجموعة مع عناصرها`);
 
-        if (groupsError) {
-          const errorMessage = getErrorMessage(groupsError);
-          console.warn("⚠️ تحذير في جلب المجموعات:", errorMessage);
-          // إذا كان الخطأ بسبب عدم وجود الجداول، نتجاهله ونكمل
-          if (errorMessage.includes("does not exist")) {
-            console.warn(
-              "⚠️ جدول المجموعات غير موجود - يرجى تشغيل سكريبت fix-groups-problem.sql",
-            );
-            groups = [];
-          } else {
-            console.error(
-              "تفاصيل خطأ المجموعات:",
-              JSON.stringify(
-                {
-                  message: errorMessage,
-                  code: groupsError?.code,
-                  details: groupsError?.details,
-                  hint: groupsError?.hint,
-                },
-                null,
-                2,
-              ),
-            );
-            throw groupsError;
-          }
-        } else {
-          groups = groupsData || [];
-          console.log(`✅ تم جلب ${groups.length} مجموعة`);
-
-          // تفاصيل المجموعات
-          groups.forEach((group, index) => {
-            console.log(`📋 مجموعة ${index + 1}:`, {
-              id: group.id,
-              type: group.type,
-              title: group.title,
-              items: group.group_items?.length || 0,
-            });
+        // تسجيل تفصيلي لهيكل البيانات
+        groups.forEach((group, index) => {
+          console.log(`📋 مجموعة ${index + 1}:`, {
+            id: group.id,
+            type: group.type,
+            title: group.title,
+            items_count: group.group_items?.length || 0,
+            first_item: group.group_items?.[0]
+              ? {
+                  course_point_name: group.group_items[0].course_point?.name,
+                  diet_item_name: group.group_items[0].diet_item?.name,
+                }
+              : null,
           });
-        }
+        });
       } catch (groupsError: any) {
         const errorMessage = getErrorMessage(groupsError);
         console.error("❌ خطأ في جلب المجموعات:", errorMessage);
@@ -316,7 +311,7 @@ export const dbHelpers = {
         throw handleDatabaseError("تحديث المشترك", error);
       }
 
-      console.log("✅ تم تحديث المشترك بنجاح");
+      console.log("✅ تم تحديث المشترك بنجا��");
       return { data: data || [], error: null };
     } catch (error: any) {
       return { data: null, error: handleDatabaseError("تحديث المشترك", error) };
@@ -871,7 +866,7 @@ export const dbHelpers = {
             console.warn("⚠️ تحذير: لم يتم تحديث المخزون:", stockError.message);
           }
         } catch (stockError) {
-          console.warn("⚠️ تحذير: خطأ في تحديث المخزون:", stockError);
+          console.warn("⚠️ تحذير: خطأ في ت��ديث المخزون:", stockError);
         }
       }
 
@@ -1103,7 +1098,7 @@ export const dbHelpers = {
 
           if (groupResponse.data?.[0]) {
             const groupId = groupResponse.data[0].id;
-            console.log("�� تم إنشاء مجموعة الأنظمة الغذائية، ID:", groupId);
+            console.log("✅ تم إنشاء مجموعة الأنظمة الغذائية، ID:", groupId);
 
             const itemsResponse = await this.createGroupItems({
               group_id: groupId,
