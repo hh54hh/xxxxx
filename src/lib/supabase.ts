@@ -140,12 +140,19 @@ export const dbHelpers = {
             );
             groups = [];
           } else {
-            console.error("تفاصيل خطأ المجموعات:", {
-              message: errorMessage,
-              code: groupsError?.code,
-              details: groupsError?.details,
-              hint: groupsError?.hint,
-            });
+            console.error(
+              "تفاصيل خطأ المجموعات:",
+              JSON.stringify(
+                {
+                  message: errorMessage,
+                  code: groupsError?.code,
+                  details: groupsError?.details,
+                  hint: groupsError?.hint,
+                },
+                null,
+                2,
+              ),
+            );
             throw groupsError;
           }
         } else {
@@ -166,12 +173,19 @@ export const dbHelpers = {
         const errorMessage = getErrorMessage(groupsError);
         console.error("❌ خطأ في جلب المجموعات:", errorMessage);
         console.warn("⚠️ سيتم استخدام قائمة فارغة للمجموعات");
-        console.error("تفاصيل الخطأ:", {
-          message: errorMessage,
-          code: groupsError?.code,
-          details: groupsError?.details,
-          hint: groupsError?.hint,
-        });
+        console.error(
+          "تفاصيل الخطأ:",
+          JSON.stringify(
+            {
+              message: errorMessage,
+              code: groupsError?.code,
+              details: groupsError?.details,
+              hint: groupsError?.hint,
+            },
+            null,
+            2,
+          ),
+        );
         groups = [];
       }
 
@@ -427,7 +441,7 @@ export const dbHelpers = {
         .select();
 
       if (error) {
-        throw handleDatabaseError("إنشاء نقطة ت��رين", error);
+        throw handleDatabaseError("إنشاء نقطة تمرين", error);
       }
 
       console.log("✅ تم إنشاء نقطة التمرين بنجاح");
