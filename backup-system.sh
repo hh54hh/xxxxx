@@ -1,118 +1,147 @@
 #!/bin/bash
 
-# نظام النسخ الاحتياطي الذكي للمشروع
-# يحفظ نسخة كاملة من جميع الملفات قبل أي عملية رفع
+# ================================================
+# نظام النسخ الاحتياطي التلقائي
+# Automatic Backup System for Hossam Gym
+# ================================================
 
-echo "🛡️ نظام الحماية والنسخ الاحتياطي الذكي"
-echo "==============================================="
+# إعدادات النسخ الاحتياطي
+BACKUP_DIR="backups"
+DATE=$(date +"%Y%m%d_%H%M%S")
+PROJECT_NAME="hossam-gym"
+BACKUP_NAME="${PROJECT_NAME}_backup_${DATE}"
 
-# إنشاء مجلد النسخ الاحتياطية
-BACKUP_DIR="project-backups"
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-BACKUP_NAME="backup_${TIMESTAMP}"
-FULL_BACKUP_PATH="${BACKUP_DIR}/${BACKUP_NAME}"
+# إنشاء مجلد النسخ الاحتياطي
+mkdir -p $BACKUP_DIR
 
-mkdir -p "$BACKUP_DIR"
+echo "🔄 بدء عملية النسخ الاحتياطي..."
+echo "📅 التاريخ: $(date)"
+echo "📁 اسم النسخة: $BACKUP_NAME"
+echo "=================================="
 
-echo "📦 إنشاء نسخة احتياطية: $BACKUP_NAME"
-
-# نسخ جميع الملفات المهمة
-echo "📁 نسخ الملفات..."
-
-# إنشاء مجلد النسخة الاحتياطية
-mkdir -p "$FULL_BACKUP_PATH"
-
-# نسخ مجلد src كاملاً
-cp -r src "$FULL_BACKUP_PATH/"
-echo "✅ تم نسخ مجلد src"
-
-# نسخ مجلد public
-cp -r public "$FULL_BACKUP_PATH/"
-echo "✅ تم نسخ مجلد public"
-
-# نسخ الملفات الأساسية
-important_files=(
+# قائمة الملفات والمجلدات المهمة للنسخ الاحتياطي
+IMPORTANT_FILES=(
+    "src"
+    "public"
     "package.json"
     "package-lock.json"
-    "index.html"
+    "tsconfig.json"
     "vite.config.ts"
     "tailwind.config.ts"
-    "tsconfig.json"
-    "tsconfig.app.json"
-    "tsconfig.node.json"
-    "postcss.config.js"
     "components.json"
-    "database_setup.sql"
+    "index.html"
+    "README.md"
+    "CONTRIBUTING.md"
+    "LICENSE"
+    "*.sql"
+    "*.md"
     ".gitignore"
-    ".gitattributes"
-    "AGENTS.md"
-    "UPLOAD_GUIDE.md"
 )
 
-for file in "${important_files[@]}"; do
-    if [ -f "$file" ]; then
-        cp "$file" "$FULL_BACKUP_PATH/"
-        echo "✅ تم نسخ: $file"
+# إنشاء مجلد النسخة الاحتياطية
+BACKUP_PATH="$BACKUP_DIR/$BACKUP_NAME"
+mkdir -p "$BACKUP_PATH"
+
+# نسخ الملفات المهمة
+echo "📋 نسخ الملفات الأساسية..."
+for item in "${IMPORTANT_FILES[@]}"; do
+    if [ -e "$item" ]; then
+        echo "  ✅ نسخ: $item"
+        cp -r "$item" "$BACKUP_PATH/" 2>/dev/null || echo "  ⚠️ تعذر نسخ: $item"
     else
-        echo "⚠️  ملف غير موجود: $file"
+        echo "  ⚠️ غير موجود: $item"
     fi
 done
 
-# إنشاء قائمة بجميع الملفات المنسوخة
-echo "📋 إنشاء فهرس الملفات..."
-find "$FULL_BACKUP_PATH" -type f > "${FULL_BACKUP_PATH}/file-list.txt"
+# نسخ ملفات الإعداد
+echo ""
+echo "⚙️ نسخ ملفات الإعداد..."
+CONFIG_FILES=(
+    ".env.example"
+    ".eslintrc.json"
+    ".prettierrc"
+    "postcss.config.js"
+)
 
-# حساب عدد الملفات
-file_count=$(find "$FULL_BACKUP_PATH" -type f | wc -l)
-echo "📊 تم نسخ $file_count ملف"
+for config in "${CONFIG_FILES[@]}"; do
+    if [ -e "$config" ]; then
+        echo "  ✅ نسخ: $config"
+        cp "$config" "$BACKUP_PATH/" 2>/dev/null
+    fi
+done
 
 # إنشاء ملف معلومات النسخة الاحتياطية
-cat > "${FULL_BACKUP_PATH}/backup-info.txt" << EOF
-نسخة احتياطية للمشروع
-====================
+echo ""
+echo "📄 إنشاء ملف معلومات النسخة..."
+cat > "$BACKUP_PATH/backup_info.txt" << EOF
+# معلومات النسخة الاحتياطية
+# Backup Information
 
-التاريخ والوقت: $(date)
-عدد الملفات: $file_count
-مسار النسخة: $FULL_BACKUP_PATH
+تاريخ النسخ: $(date)
+اسم المشروع: $PROJECT_NAME
+إصدار Node.js: $(node --version 2>/dev/null || echo "غير مثبت")
+إصدار npm: $(npm --version 2>/dev/null || echo "غير مثبت")
 
-الملفات المشمولة:
-- مجلد src كاملاً
-- مجلد public كاملاً
-- جميع ملفات التكوين
-- قاعدة البيانات
-- ملفات المشروع الأساسية
+# إحصائيات المشروع
+عدد ملفات JavaScript/TypeScript: $(find src -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" | wc -l)
+عدد ملفات CSS: $(find src -name "*.css" | wc -l)
+عدد المكونات: $(find src/components -name "*.tsx" | wc -l)
+عدد الصفحات: $(find src/pages -name "*.tsx" | wc -l)
 
+# Git معلومات (إن وجدت)
+Git Commit: $(git rev-parse HEAD 2>/dev/null || echo "غير متاح")
+Git Branch: $(git branch --show-current 2>/dev/null || echo "غير متاح")
+
+# حجم المشروع
+حجم مجلد src: $(du -sh src 2>/dev/null || echo "غير متاح")
+حجم node_modules: $(du -sh node_modules 2>/dev/null || echo "غير مثبت")
 EOF
 
-echo "🎉 تم إنشاء النسخة الاحتياطية بنجاح!"
-echo "📍 المسار: $FULL_BACKUP_PATH"
+# ضغط النسخة الاحتياطية
+echo ""
+echo "🗜️ ضغط النسخة الاحتياطية..."
+cd "$BACKUP_DIR"
+tar -czf "${BACKUP_NAME}.tar.gz" "$BACKUP_NAME"
+
+if [ $? -eq 0 ]; then
+    echo "  ✅ تم ضغط النسخة بنجاح"
+    
+    # حذف المجلد غير المضغوط
+    rm -rf "$BACKUP_NAME"
+    
+    # حجم الملف المضغوط
+    BACKUP_SIZE=$(du -sh "${BACKUP_NAME}.tar.gz" | cut -f1)
+    echo "  📦 حجم النسخة المضغوطة: $BACKUP_SIZE"
+else
+    echo "  ❌ فشل في ضغط النسخة"
+fi
+
+cd ..
+
+# تنظيف النسخ القديمة (الاحتفاظ بآخر 10 نسخ)
+echo ""
+echo "🧹 تنظيف النسخ القديمة..."
+cd "$BACKUP_DIR"
+ls -t *.tar.gz | tail -n +11 | xargs -r rm -f
+REMAINING_BACKUPS=$(ls *.tar.gz 2>/dev/null | wc -l)
+echo "  📊 عدد النسخ المتبقية: $REMAINING_BACKUPS"
+cd ..
+
+echo ""
+echo "=================================="
+echo "✅ تمت عملية النسخ الاحتياطي بنجاح!"
+echo "📁 مسار النسخة: $BACKUP_DIR/${BACKUP_NAME}.tar.gz"
+echo "⏰ وقت الانتهاء: $(date)"
 echo ""
 
-# إنشاء ملف restore script
-cat > "${FULL_BACKUP_PATH}/restore.sh" << 'RESTORE_EOF'
-#!/bin/bash
-echo "🔄 استعادة النسخة الاحتياطية..."
+# عرض قائمة النسخ الاحتياطية
+echo "📋 النسخ الاحتياطية المتاحة:"
+ls -lah "$BACKUP_DIR"/*.tar.gz 2>/dev/null || echo "  لا توجد نسخ احتياطية"
 
-# العودة إلى مجلد المشروع الأصلي
-cd ../..
-
-# نسخ الملفات من النسخة الاحتياطية
-cp -r src/* src/ 2>/dev/null || cp -r src ./
-cp -r public/* public/ 2>/dev/null || cp -r public ./
-
-# نسخ الملفات الأساسية
-for file in package.json package-lock.json index.html *.config.* tsconfig*.json *.md; do
-    if [ -f "$file" ]; then
-        cp "$file" ../.. 2>/dev/null
-    fi
-done
-
-echo "✅ تم استعادة النسخة الاحتياطية بنجاح!"
-RESTORE_EOF
-
-chmod +x "${FULL_BACKUP_PATH}/restore.sh"
-
-echo "💾 تم إنشاء سكريبت الاستعادة: ${FULL_BACKUP_PATH}/restore.sh"
 echo ""
-echo "للاستعادة اللاحقة، استخدم:"
-echo "bash ${FULL_BACKUP_PATH}/restore.sh"
+echo "💡 نصائح:"
+echo "  • لاستعادة النسخة: tar -xzf $BACKUP_DIR/${BACKUP_NAME}.tar.gz"
+echo "  • لنسخ احتياطي منتظم: أضف هذا السكريبت إلى crontab"
+echo "  • احفظ النسخ في مكان آمن خارج الخادم"
+echo ""
+echo "🎉 انتهت عملية النسخ الاحتياطي!"
