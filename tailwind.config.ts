@@ -12,26 +12,10 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: {
-        DEFAULT: "1rem",
-        sm: "1.5rem",
-        lg: "2rem",
-      },
+      padding: "2rem",
       screens: {
-        sm: "640px",
-        md: "768px",
-        lg: "1024px",
-        xl: "1280px",
         "2xl": "1400px",
       },
-    },
-    screens: {
-      xs: "475px",
-      sm: "640px",
-      md: "768px",
-      lg: "1024px",
-      xl: "1280px",
-      "2xl": "1400px",
     },
     extend: {
       fontFamily: {
@@ -83,13 +67,10 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
         gym: {
-          orange: "hsl(var(--gym-orange))",
-          "orange-foreground": "hsl(var(--gym-orange-foreground))",
-          dark: "hsl(var(--gym-dark))",
-          gray: "hsl(var(--gym-gray))",
+          primary: "hsl(var(--gym-primary))",
+          secondary: "hsl(var(--gym-secondary))",
+          accent: "hsl(var(--gym-accent))",
         },
-        success: "hsl(var(--success))",
-        warning: "hsl(var(--warning))",
       },
       borderRadius: {
         lg: "var(--radius)",

@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Save,
-  Plus,
-  X,
+  ArrowRight,
   User,
   Dumbbell,
   Apple,
-  ArrowRight,
+  Plus,
+  X,
   Check,
   Search,
 } from "lucide-react";
@@ -36,24 +36,37 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { dbHelpers } from "@/lib/supabase";
-import type { SubscriberFormData, CoursePoint, DietItem, Group } from "@/types";
+import { formatArabicDate, calculateBMI } from "@/lib/utils-enhanced";
+import type {
+  SubscriberFormData,
+  CoursePoint,
+  DietItem,
+  SubscriberWithGroups,
+} from "@/types";
 import Layout from "@/components/Layout";
 
 interface CourseGroup {
+  id?: string;
   title: string;
   selectedCourses: string[];
 }
 
 interface DietGroup {
+  id?: string;
   title: string;
   selectedItems: string[];
 }
 
-export default function AddSubscriber() {
+export default function EditSubscriber() {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [coursePoints, setCoursePoints] = useState<CoursePoint[]>([]);
   const [dietItems, setDietItems] = useState<DietItem[]>([]);
+  const [subscriber, setSubscriber] = useState<SubscriberWithGroups | null>(
+    null,
+  );
 
   // Form data
   const [formData, setFormData] = useState<SubscriberFormData>({
@@ -84,8 +97,12 @@ export default function AddSubscriber() {
   const [dietSearchTerm, setDietSearchTerm] = useState("");
 
   useEffect(() => {
+    if (!id) {
+      navigate("/dashboard");
+      return;
+    }
     loadData();
-  }, []);
+  }, [id, navigate]);
 
   const loadData = async () => {
     try {
@@ -96,12 +113,109 @@ export default function AddSubscriber() {
 
       if (coursesResponse.data) setCoursePoints(coursesResponse.data);
       if (dietResponse.data) setDietItems(dietResponse.data);
+
+      // Load subscriber data - for now using mock data
+      const mockSubscriber: SubscriberWithGroups = {
+        id: id!,
+        name: "أحمد محمد علي",
+        age: 25,
+        weight: 80,
+        height: 175,
+        phone: "01234567890",
+        notes: "يريد تقوية عضلات الصدر والذراعين",
+        subscription_date: "2024-01-15",
+        created_at: "2024-01-15T10:00:00Z",
+        updated_at: "2024-01-15T10:00:00Z",
+        groups: [
+          {
+            id: "1",
+            subscriber_id: id!,
+            type: "course",
+            title: "برنامج تقوية العضلات",
+            created_at: "2024-01-15T10:00:00Z",
+            updated_at: "2024-01-15T10:00:00Z",
+            items: [
+              {
+                id: "1",
+                group_id: "1",
+                item_id: "1",
+                created_at: "2024-01-15T10:00:00Z",
+              },
+              {
+                id: "2",
+                group_id: "1",
+                item_id: "2",
+                created_at: "2024-01-15T10:00:00Z",
+              },
+            ],
+          },
+          {
+            id: "2",
+            subscriber_id: id!,
+            type: "diet",
+            title: "نظام غذائي لزيادة الكتلة العضلية",
+            created_at: "2024-01-15T10:00:00Z",
+            updated_at: "2024-01-15T10:00:00Z",
+            items: [
+              {
+                id: "3",
+                group_id: "2",
+                item_id: "1",
+                created_at: "2024-01-15T10:00:00Z",
+              },
+              {
+                id: "4",
+                group_id: "2",
+                item_id: "2",
+                created_at: "2024-01-15T10:00:00Z",
+              },
+            ],
+          },
+        ],
+      };
+
+      setSubscriber(mockSubscriber);
+
+      // Populate form with existing data
+      setFormData({
+        name: mockSubscriber.name,
+        age: mockSubscriber.age,
+        weight: mockSubscriber.weight,
+        height: mockSubscriber.height,
+        phone: mockSubscriber.phone,
+        notes: mockSubscriber.notes || "",
+      });
+
+      // Populate existing groups
+      const existingCourseGroups =
+        mockSubscriber.groups
+          ?.filter((g) => g.type === "course")
+          .map((group) => ({
+            id: group.id,
+            title: group.title || "",
+            selectedCourses: group.items?.map((item) => item.item_id) || [],
+          })) || [];
+
+      const existingDietGroups =
+        mockSubscriber.groups
+          ?.filter((g) => g.type === "diet")
+          .map((group) => ({
+            id: group.id,
+            title: group.title || "",
+            selectedItems: group.items?.map((item) => item.item_id) || [],
+          })) || [];
+
+      setCourseGroups(existingCourseGroups);
+      setDietGroups(existingDietGroups);
     } catch (error) {
       toast({
         title: "خطأ في تحميل البيانات",
-        description: "لم نتمكن من تحميل قوائم التمارين والأنظمة الغذائية",
+        description: "لم نتمكن من تحميل البيانات المطلوبة",
         variant: "destructive",
       });
+      navigate("/dashboard");
+    } finally {
+      setIsLoadingData(false);
     }
   };
 
@@ -115,7 +229,7 @@ export default function AddSubscriber() {
     }));
   };
 
-  const handleAddCourseGroup = () => {
+  const addCourseGroup = () => {
     if (newCourseGroup.selectedCourses.length === 0) {
       toast({
         title: "يرجى اختيار تمارين",
@@ -135,16 +249,7 @@ export default function AddSubscriber() {
     });
   };
 
-  const filteredCoursePoints = coursePoints.filter(
-    (course) =>
-      course.name.toLowerCase().includes(courseSearchTerm.toLowerCase()) ||
-      (course.description &&
-        course.description
-          .toLowerCase()
-          .includes(courseSearchTerm.toLowerCase())),
-  );
-
-  const handleAddDietGroup = () => {
+  const addDietGroup = () => {
     if (newDietGroup.selectedItems.length === 0) {
       toast({
         title: "يرجى اختيار عناصر غذائية",
@@ -164,18 +269,11 @@ export default function AddSubscriber() {
     });
   };
 
-  const filteredDietItems = dietItems.filter(
-    (item) =>
-      item.name.toLowerCase().includes(dietSearchTerm.toLowerCase()) ||
-      (item.description &&
-        item.description.toLowerCase().includes(dietSearchTerm.toLowerCase())),
-  );
-
-  const handleRemoveCourseGroup = (index: number) => {
+  const removeCourseGroup = (index: number) => {
     setCourseGroups((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleRemoveDietGroup = (index: number) => {
+  const removeDietGroup = (index: number) => {
     setDietGroups((prev) => prev.filter((_, i) => i !== index));
   };
 
@@ -200,65 +298,77 @@ export default function AddSubscriber() {
     setIsLoading(true);
 
     try {
-      // Create subscriber
-      const subscriberData = {
-        ...formData,
-        subscription_date: new Date().toISOString().split("T")[0],
-      };
+      // Update subscriber
+      const updateResponse = await dbHelpers.updateSubscriber(id!, formData);
 
-      const subscriberResponse =
-        await dbHelpers.createSubscriber(subscriberData);
-
-      if (!subscriberResponse.data?.[0]) {
-        throw new Error("Failed to create subscriber");
+      if (!updateResponse.data?.[0]) {
+        throw new Error("Failed to update subscriber");
       }
 
-      const subscriberId = subscriberResponse.data[0].id;
-
-      // Create course groups
-      for (const courseGroup of courseGroups) {
-        const groupData = {
-          subscriber_id: subscriberId,
-          type: "course" as const,
-          title: courseGroup.title || null,
-        };
-
-        // This would create the group and its items in real implementation
-        console.log(
-          "Creating course group:",
-          groupData,
-          courseGroup.selectedCourses,
-        );
-      }
-
-      // Create diet groups
-      for (const dietGroup of dietGroups) {
-        const groupData = {
-          subscriber_id: subscriberId,
-          type: "diet" as const,
-          title: dietGroup.title || null,
-        };
-
-        // This would create the group and its items in real implementation
-        console.log("Creating diet group:", groupData, dietGroup.selectedItems);
-      }
+      // In real implementation, handle updating groups here
+      console.log("Updating course groups:", courseGroups);
+      console.log("Updating diet groups:", dietGroups);
 
       toast({
-        title: "تم الحفظ بنجاح",
-        description: `تم إضافة المشترك ${formData.name} بنجاح`,
+        title: "تم التحديث بنجاح",
+        description: `تم تحديث بيانات المشترك ${formData.name}`,
       });
 
-      navigate("/dashboard");
+      navigate(`/subscriber/${id}`);
     } catch (error) {
       toast({
-        title: "خطأ في الحفظ",
-        description: "لم نتمكن من حفظ بيانات المشترك",
+        title: "خطأ في التحديث",
+        description: "لم نتمكن من تحديث بيانات المشترك",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
+
+  const filteredCoursePoints = coursePoints.filter(
+    (course) =>
+      course.name.toLowerCase().includes(courseSearchTerm.toLowerCase()) ||
+      (course.description &&
+        course.description
+          .toLowerCase()
+          .includes(courseSearchTerm.toLowerCase())),
+  );
+
+  const filteredDietItems = dietItems.filter(
+    (item) =>
+      item.name.toLowerCase().includes(dietSearchTerm.toLowerCase()) ||
+      (item.description &&
+        item.description.toLowerCase().includes(dietSearchTerm.toLowerCase())),
+  );
+
+  if (isLoadingData) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gym-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">جاري تحميل البيانات...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!subscriber) {
+    return (
+      <Layout>
+        <div className="text-center py-16">
+          <h2 className="text-2xl font-bold mb-4">المشترك غير موجود</h2>
+          <Button onClick={() => navigate("/dashboard")}>
+            العودة إلى قائمة المشتركين
+          </Button>
+        </div>
+      </Layout>
+    );
+  }
+
+  const bmiData = calculateBMI(formData.weight, formData.height);
 
   return (
     <Layout>
@@ -268,17 +378,26 @@ export default function AddSubscriber() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate(`/subscriber/${id}`)}
           >
             <ArrowRight className="w-5 h-5" />
           </Button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-3xl font-bold text-foreground">
-              إضافة مشترك جديد
+              تعديل بيانات المشترك
             </h1>
             <p className="text-muted-foreground">
-              إضافة مشترك جديد مع الكورسات والأنظمة الغذائية
+              تعديل بيانات {subscriber.name}
             </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className={`${bmiData.color} border-current`}
+            >
+              BMI: {bmiData.value}
+            </Badge>
+            <Badge variant="secondary">{bmiData.category}</Badge>
           </div>
         </div>
 
@@ -293,7 +412,9 @@ export default function AddSubscriber() {
                   </div>
                   المعلومات الشخصية
                 </CardTitle>
-                <CardDescription>البيانات الأساسية للمشترك</CardDescription>
+                <CardDescription>
+                  تعديل البيانات الأساسية للمشترك
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -397,7 +518,7 @@ export default function AddSubscriber() {
                   disabled={isLoading}
                 >
                   <Save className="w-4 h-4 ml-2" />
-                  {isLoading ? "جاري الحفظ..." : "حفظ المشترك"}
+                  {isLoading ? "جاري الحفظ..." : "حفظ التعديلات"}
                 </Button>
               </CardContent>
             </Card>
@@ -538,7 +659,7 @@ export default function AddSubscriber() {
                         >
                           إلغاء
                         </Button>
-                        <Button onClick={handleAddCourseGroup}>
+                        <Button onClick={addCourseGroup}>
                           <Check className="w-4 h-4 ml-2" />
                           إضافة
                         </Button>
@@ -565,7 +686,7 @@ export default function AddSubscriber() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => handleRemoveCourseGroup(index)}
+                            onClick={() => removeCourseGroup(index)}
                           >
                             <X className="w-4 h-4" />
                           </Button>
@@ -725,7 +846,7 @@ export default function AddSubscriber() {
                         >
                           إلغاء
                         </Button>
-                        <Button onClick={handleAddDietGroup}>
+                        <Button onClick={addDietGroup}>
                           <Check className="w-4 h-4 ml-2" />
                           إضافة
                         </Button>
@@ -752,7 +873,7 @@ export default function AddSubscriber() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => handleRemoveDietGroup(index)}
+                            onClick={() => removeDietGroup(index)}
                           >
                             <X className="w-4 h-4" />
                           </Button>

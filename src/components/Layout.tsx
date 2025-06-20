@@ -1,72 +1,77 @@
 import { useState } from "react";
-import { Link, useLocation, Outlet } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   Users,
   UserPlus,
   Dumbbell,
-  Utensils,
-  Store,
-  Receipt,
+  Apple,
+  Package,
+  ShoppingCart,
+  Settings,
+  LogOut,
   Menu,
   X,
-  LogOut,
   Home,
-  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import OfflineStatus from "./OfflineStatus";
-import LowStockAlert from "./LowStockAlert";
-import SyncStatus from "./SyncStatus";
+import ThemeToggle from "./ThemeToggle";
+import AppearanceSettings from "./AppearanceSettings";
+import type { NavItem } from "@/types";
 
-const navigation = [
-  { name: "المشتركين", href: "/subscribers", icon: Users },
-  { name: "إضافة مشترك", href: "/add-subscriber", icon: UserPlus },
-  { name: "الكورسات", href: "/courses", icon: Dumbbell },
-  { name: "الأنظمة الغذائية", href: "/diet", icon: Utensils },
-  { name: "المخزن", href: "/store", icon: Store },
-  { name: "المبيعات", href: "/sales", icon: Receipt },
+const navItems: NavItem[] = [
+  { title: "المشتركين", href: "/dashboard", icon: Users },
+  { title: "إضافة مشترك", href: "/add-subscriber", icon: UserPlus },
+  { title: "الكورسات", href: "/courses", icon: Dumbbell },
+  { title: "الأنظمة الغذائية", href: "/diet", icon: Apple },
+  { title: "المخزن", href: "/inventory", icon: Package },
+  { title: "المبيعات", href: "/sales", icon: ShoppingCart },
+  { title: "الضبط", href: "/settings", icon: Settings },
 ];
 
-export default function Layout() {
+interface LayoutProps {
+  children: React.ReactNode;
+}
+
+export default function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
+  const handleLogout = () => {
+    // Clear session and redirect to login
+    sessionStorage.removeItem("gym_session");
+    window.location.href = "/";
+  };
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Offline Status */}
-      <OfflineStatus />
-
-      {/* Low Stock Alert */}
-      <LowStockAlert />
-
-      {/* Mobile sidebar backdrop */}
+    <div className="min-h-screen bg-background" dir="rtl">
+      {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <div
+      <aside
         className={cn(
-          "sidebar-responsive bg-sidebar border-l border-sidebar-border transform transition-transform duration-300 ease-in-out lg:translate-x-0",
-          sidebarOpen ? "translate-x-0" : "translate-x-full",
+          "fixed top-0 right-0 z-50 h-full w-80 bg-sidebar backdrop-blur-lg border-l border-sidebar-border transform transition-all duration-300 ease-in-out lg:translate-x-0 shadow-2xl",
+          sidebarOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0",
         )}
       >
         <div className="flex flex-col h-full">
-          {/* Sidebar header */}
-          <div className="flex items-center justify-between h-16 px-6 border-b border-sidebar-border">
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-sidebar-border">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                <Dumbbell className="w-6 h-6 text-primary-foreground" />
+              <div className="w-10 h-10 bg-gym-primary rounded-xl flex items-center justify-center">
+                <Dumbbell className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-sidebar-foreground">
+                <h1 className="text-xl font-bold text-sidebar-foreground">
                   صالة حسام جم
                 </h1>
-                <p className="text-sm text-sidebar-foreground/60">
+                <p className="text-sm text-sidebar-foreground/70">
                   نظام إدارة الصالة
                 </p>
               </div>
@@ -74,101 +79,81 @@ export default function Layout() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setSidebarOpen(false)}
               className="lg:hidden"
+              onClick={() => setSidebarOpen(false)}
             >
               <X className="w-5 h-5" />
             </Button>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2">
-            {navigation.map((item) => {
+          <nav className="flex-1 p-4 space-y-2">
+            {navItems.map((item) => {
+              const Icon = item.icon || Home;
               const isActive = location.pathname === item.href;
-              const Icon = item.icon;
 
               return (
-                <Link
-                  key={item.name}
+                <NavLink
+                  key={item.href}
                   to={item.href}
+                  className={cn("sidebar-item", isActive && "active")}
                   onClick={() => setSidebarOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors",
-                    isActive
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                  )}
                 >
                   <Icon className="w-5 h-5" />
-                  <span className="arabic">{item.name}</span>
-                </Link>
+                  <span className="font-medium">{item.title}</span>
+                  {item.badge && (
+                    <span className="mr-auto bg-gym-primary text-white text-xs px-2 py-1 rounded-full">
+                      {item.badge}
+                    </span>
+                  )}
+                </NavLink>
               );
             })}
           </nav>
 
-          {/* Sidebar footer */}
-          <div className="p-4 border-t border-sidebar-border space-y-2">
-            <Link
-              to="/settings"
-              className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg transition-colors"
-            >
-              <Settings className="w-5 h-5" />
-              <span className="arabic">الإعدادات</span>
-            </Link>
-            <Link
-              to="/login"
-              className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg transition-colors"
-            >
-              <LogOut className="w-5 h-5" />
-              <span className="arabic">تسجيل خروج</span>
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div className="main-content-with-sidebar min-h-screen flex flex-col">
-        {/* Top bar */}
-        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 sm:px-6 flex-shrink-0">
-          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+          {/* Footer */}
+          <div className="p-4 border-t border-sidebar-border space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-sidebar-foreground/70">المظهر</span>
+              <div className="flex items-center gap-1">
+                <ThemeToggle />
+                <AppearanceSettings />
+              </div>
+            </div>
             <Button
               variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden flex-shrink-0"
+              className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent"
+              onClick={handleLogout}
             >
-              <Menu className="w-5 h-5" />
+              <LogOut className="w-5 h-5 ml-3" />
+              تسجيل الخروج
             </Button>
-            <div className="min-w-0 flex-1">
-              <h2 className="text-base sm:text-lg font-semibold truncate">
-                نظام إدارة صالة حسام جم
-              </h2>
-              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
-                مرحباً بك في نظام الإدارة
-              </p>
-            </div>
           </div>
+        </div>
+      </aside>
 
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            <SyncStatus compact />
-            <div className="text-xs sm:text-sm text-muted-foreground hidden md:block">
-              {new Date().toLocaleDateString("ar-EG", {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              })}
-            </div>
-            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-sm font-medium text-primary-foreground">
-                ح
-              </span>
-            </div>
+      {/* Main content */}
+      <div className="lg:mr-80">
+        {/* Mobile header */}
+        <header className="lg:hidden bg-card/80 backdrop-blur-md border-b border-border p-4 flex items-center justify-between sticky top-0 z-40">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hover:bg-gym-primary/10 hover:text-gym-primary transition-colors"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <Menu className="w-6 h-6" />
+          </Button>
+          <h2 className="text-lg font-semibold gradient-text">صالة حسام جم</h2>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <AppearanceSettings />
           </div>
         </header>
 
         {/* Page content */}
-        <main className="p-4 sm:p-6 lg:p-8 flex-1 overflow-auto">
-          <Outlet />
+        <main className="min-h-screen p-6 bg-gradient-to-br from-background via-background to-muted/30">
+          <div className="max-w-7xl mx-auto">{children}</div>
         </main>
       </div>
     </div>

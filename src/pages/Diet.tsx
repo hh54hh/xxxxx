@@ -1,19 +1,25 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
-  Utensils,
   Plus,
   Search,
   Edit,
   Trash2,
+  Apple,
   Save,
   X,
-  Filter,
+  MoreHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -25,270 +31,200 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import {
-  createRecord,
-  updateRecord,
-  deleteRecord,
-  SUPABASE_TABLES,
-} from "@/lib/syncService";
-import { db } from "@/lib/database";
-import { toast } from "sonner";
-
-interface DietItem {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  calories?: number;
-  protein?: number;
-  created_at: string;
-}
-
-const dietCategories = [
-  "بروتينات",
-  "كربوهيدرات",
-  "دهون صحية",
-  "فيتامينات",
-  "معاد��",
-  "مكملات غذائية",
-  "خضروات",
-  "فواكه",
-  "حبوب",
-  "منتجات ألبان",
-];
-
-// Initial diet items
-const initialDietItems: DietItem[] = [
-  {
-    id: "1",
-    name: "البروتين المصل",
-    description: "مكمل بروتيني عالي الجودة لبناء العضلات",
-    category: "مكملات غذائية",
-    calories: 120,
-    protein: 25,
-    created_at: "2024-01-15T10:00:00Z",
-  },
-  {
-    id: "2",
-    name: "الأرز البني",
-    description: "مصدر ممتاز للكربوهيدرات المعقدة",
-    category: "كربوهيدرات",
-    calories: 350,
-    protein: 7,
-    created_at: "2024-01-16T11:00:00Z",
-  },
-  {
-    id: "3",
-    name: "السلمون",
-    description: "مصدر غني بالبروتين والأوميغا 3",
-    category: "بروتينات",
-    calories: 200,
-    protein: 25,
-    created_at: "2024-01-17T09:00:00Z",
-  },
-  {
-    id: "4",
-    name: "السبانخ",
-    description: "خضروات ورقية غنية بالحديد والفيتامينات",
-    category: "خضروات",
-    calories: 20,
-    protein: 3,
-    created_at: "2024-01-18T16:00:00Z",
-  },
-  {
-    id: "5",
-    name: "الموز",
-    description: "فاكهة غنية ب��لبوتاسيوم والطاقة السريعة",
-    category: "فواكه",
-    calories: 95,
-    protein: 1,
-    created_at: "2024-01-19T08:00:00Z",
-  },
-];
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "@/hooks/use-toast";
+import { dbHelpers } from "@/lib/supabase";
+import type { DietItem, DietFormData } from "@/types";
+import Layout from "@/components/Layout";
 
 export default function Diet() {
   const [dietItems, setDietItems] = useState<DietItem[]>([]);
+  const [filteredItems, setFilteredItems] = useState<DietItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("الكل");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<DietItem | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<DietItem | null>(null);
 
-  // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<DietFormData>({
     name: "",
     description: "",
-    category: dietCategories[0],
-    calories: "",
-    protein: "",
   });
 
-  // Load data from IndexedDB
   useEffect(() => {
-    const loadDietItems = async () => {
-      try {
-        const items = await db.dietItems.toArray();
-        setDietItems(items);
-      } catch (error) {
-        console.error("Error loading diet items:", error);
-        setDietItems(initialDietItems);
-      }
-    };
-
     loadDietItems();
   }, []);
 
-  // Filter and search
-  const filteredItems = dietItems.filter((item) => {
-    const matchesSearch = item.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "الكل" || item.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredItems(dietItems);
+    } else {
+      const filtered = dietItems.filter(
+        (item) =>
+          item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (item.description &&
+            item.description.toLowerCase().includes(searchTerm.toLowerCase())),
+      );
+      setFilteredItems(filtered);
+    }
+  }, [searchTerm, dietItems]);
 
-  // Reload diet items from database
-  const reloadDietItems = async () => {
+  const loadDietItems = async () => {
     try {
-      const items = await db.dietItems.toArray();
-      setDietItems(items);
+      const response = await dbHelpers.getDietItems();
+      if (response.data) {
+        setDietItems(response.data);
+      }
     } catch (error) {
-      console.error("Error reloading diet items:", error);
+      toast({
+        title: "خطأ في تحميل البيانات",
+        description: "لم نتمكن من تحميل قائمة الأنظمة الغذائية",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleInputChange = (field: keyof DietFormData, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
 
-    // Comprehensive validation
-    if (!formData.name || !formData.name.trim()) {
-      toast.error("يرجى إدخال اسم العنصر الغذائي");
+  const resetForm = () => {
+    setFormData({ name: "", description: "" });
+  };
+
+  const handleAdd = async () => {
+    if (!formData.name.trim()) {
+      toast({
+        title: "بيانات ناقصة",
+        description: "يرجى إدخال اسم العنصر الغذائي",
+        variant: "destructive",
+      });
       return;
     }
-
-    if (!formData.description || !formData.description.trim()) {
-      toast.error("يرجى إدخال وصف العنصر الغذائي");
-      return;
-    }
-
-    if (!formData.category || !formData.category.trim()) {
-      toast.error("يرجى اختيار فئة العنصر الغذائي");
-      return;
-    }
-
-    // Validate numeric fields
-    if (formData.calories && formData.calories < 0) {
-      toast.error("السعرات الحرارية لا يمكن أن تكون سالبة");
-      return;
-    }
-
-    if (formData.protein && formData.protein < 0) {
-      toast.error("البروتين لا يمكن أن يكون سالب");
-      return;
-    }
-
-    // Check for duplicates
-    const isDuplicate = dietItems.some(
-      (item) =>
-        item.name.toLowerCase() === formData.name.toLowerCase() &&
-        item.id !== editingItem?.id,
-    );
-
-    if (isDuplicate) {
-      toast.error("اسم العنصر الغذائي موجود بالفعل");
-      return;
-    }
-
-    // Show loading state
-    const loadingToast = toast.loading(
-      editingItem
-        ? "جاري تحديث العنصر الغذائي..."
-        : "جاري حفظ العنصر الغذائي...",
-    );
 
     try {
-      // Validate and clean data before saving
-      const dataToSave = {
-        name: formData.name.trim(),
-        description: formData.description.trim(),
-        category: formData.category.trim(),
-        calories: formData.calories || 0,
-        protein: formData.protein || 0,
-      };
-
-      if (editingItem) {
-        // Update existing item
-        await updateRecord(
-          SUPABASE_TABLES.DIET_ITEMS,
-          editingItem.id,
-          dataToSave,
-        );
-        toast.success("تم تحديث العنصر الغذائي بنجاح", { id: loadingToast });
-      } else {
-        // Add new item
-        await createRecord(SUPABASE_TABLES.DIET_ITEMS, dataToSave);
-        toast.success("تم إضافة العنصر الغذائي بنجاح", { id: loadingToast });
+      const response = await dbHelpers.createDietItem(formData);
+      if (response.data?.[0]) {
+        setDietItems((prev) => [...prev, response.data[0]]);
+        toast({
+          title: "تمت الإضافة بنجاح",
+          description: `تم إضافة العنصر الغذائي ${formData.name}`,
+        });
+        resetForm();
+        setIsAddDialogOpen(false);
       }
-
-      // Reload data to ensure consistency
-      await reloadDietItems();
-      handleCloseDialog();
     } catch (error) {
-      console.error("Error saving diet item:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "خطأ غير محدد";
-      toast.error(`فشل في حفظ العنصر الغذائي: ${errorMessage}`, {
-        id: loadingToast,
+      toast({
+        title: "خطأ في الإضافة",
+        description: "لم نتمكن من إضافة العنصر الغذائي",
+        variant: "destructive",
       });
     }
   };
 
-  // Handle edit
-  const handleEdit = (item: DietItem) => {
-    setEditingItem(item);
-    setFormData({
-      name: item.name,
-      description: item.description,
-      category: item.category,
-      calories: item.calories?.toString() || "",
-      protein: item.protein?.toString() || "",
-    });
-    setIsDialogOpen(true);
-  };
+  const handleEdit = async () => {
+    if (!selectedItem || !formData.name.trim()) {
+      toast({
+        title: "بيانات ناقصة",
+        description: "يرجى إدخال اسم العنصر الغذائي",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  // Handle delete
-  const handleDelete = async (id: string) => {
-    if (window.confirm("هل أنت متأكد من حذف هذا العنصر الغذائي؟")) {
-      try {
-        await deleteRecord(SUPABASE_TABLES.DIET_ITEMS, id);
-        await reloadDietItems();
-      } catch (error) {
-        console.error("Error deleting diet item:", error);
-        toast.error("حدث خطأ أثناء حذف العنصر الغذائي");
+    try {
+      const response = await dbHelpers.updateDietItem(
+        selectedItem.id,
+        formData,
+      );
+      if (response.data?.[0]) {
+        setDietItems((prev) =>
+          prev.map((item) =>
+            item.id === selectedItem.id ? response.data[0] : item,
+          ),
+        );
+        toast({
+          title: "تم التحديث بنجاح",
+          description: `تم تحد��ث العنصر الغذائي ${formData.name}`,
+        });
+        resetForm();
+        setIsEditDialogOpen(false);
+        setSelectedItem(null);
       }
+    } catch (error) {
+      toast({
+        title: "خطأ في التحديث",
+        description: "لم نتمكن من تحديث العنصر الغذائي",
+        variant: "destructive",
+      });
     }
   };
 
-  // Handle close dialog
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    setEditingItem(null);
-    setFormData({
-      name: "",
-      description: "",
-      category: dietCategories[0],
-      calories: "",
-      protein: "",
-    });
+  const handleDelete = async () => {
+    if (!selectedItem) return;
+
+    try {
+      await dbHelpers.deleteDietItem(selectedItem.id);
+      setDietItems((prev) =>
+        prev.filter((item) => item.id !== selectedItem.id),
+      );
+      toast({
+        title: "تم الحذف بنجاح",
+        description: `تم حذف العنصر الغذائي ${selectedItem.name}`,
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedItem(null);
+    } catch (error) {
+      toast({
+        title: "خطأ في الحذف",
+        description: "لم نتمكن من حذف العنصر الغذائي",
+        variant: "destructive",
+      });
+    }
   };
 
-  // Format date
+  const openEditDialog = (item: DietItem) => {
+    setSelectedItem(item);
+    setFormData({
+      name: item.name,
+      description: item.description || "",
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const openDeleteDialog = (item: DietItem) => {
+    setSelectedItem(item);
+    setIsDeleteDialogOpen(true);
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("ar-EG", {
       year: "numeric",
@@ -297,281 +233,327 @@ export default function Diet() {
     });
   };
 
-  // Get category stats
-  const getCategoryStats = () => {
-    const stats: { [key: string]: number } = {};
-    dietItems.forEach((item) => {
-      stats[item.category] = (stats[item.category] || 0) + 1;
-    });
-    return stats;
-  };
-
-  const categoryStats = getCategoryStats();
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gym-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">جاري تحميل البيانات...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">إدارة الأنظمة الغذائية</h1>
-          <p className="text-muted-foreground">
-            إدارة العناصر الغذائية المستخدمة في الخطط الغذائية
-          </p>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gym-button" onClick={() => setEditingItem(null)}>
-              <Plus className="w-4 h-4 mr-2" />
-              إضافة عنصر غذائي
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>
-                {editingItem ? "تعديل العنصر الغذائي" : "إضافة عنصر غذائي جديد"}
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">اسم العنصر الغذائي *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                  placeholder="أدخل اسم العنصر"
-                  className="text-right"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category">الفئة</Label>
-                <select
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      category: e.target.value,
-                    }))
-                  }
-                  className="w-full p-2 border rounded-md text-right"
-                >
-                  {dietCategories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+    <Layout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">
+              الأنظمة الغذائية
+            </h1>
+            <p className="text-muted-foreground">
+              إدارة العناصر الغذائية والأنظمة المتاحة
+            </p>
+          </div>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gym-button">
+                <Plus className="w-5 h-5 ml-2" />
+                إضافة عنصر غذائي
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>إضافة عنصر غذائي جديد</DialogTitle>
+                <DialogDescription>
+                  أضف عنصر غذائي جديد إلى قائمة العناصر المتاحة
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="calories">السعرات (لكل 100غ)</Label>
+                  <Label htmlFor="add-name">اسم العنصر الغذائي *</Label>
                   <Input
-                    id="calories"
-                    type="number"
-                    step="0.1"
-                    value={formData.calories}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        calories: e.target.value,
-                      }))
-                    }
-                    placeholder="السعرات"
+                    id="add-name"
+                    value={formData.name}
+                    onChange={(e) => handleInputChange("name", e.target.value)}
+                    placeholder="مثل: بروتين مسحوق"
                     className="text-right"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="protein">البروتين (غ)</Label>
-                  <Input
-                    id="protein"
-                    type="number"
-                    step="0.1"
-                    value={formData.protein}
+                  <Label htmlFor="add-description">الوصف والتعليمات</Label>
+                  <Textarea
+                    id="add-description"
+                    value={formData.description}
                     onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        protein: e.target.value,
-                      }))
+                      handleInputChange("description", e.target.value)
                     }
-                    placeholder="البروتين"
-                    className="text-right"
+                    placeholder="مثل: 30 جرام بعد التمرين مباشرة"
+                    className="text-right min-h-[80px]"
                   />
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">وصف العنصر</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      description: e.target.value,
-                    }))
-                  }
-                  placeholder="وصف مفصل للعنصر الغذائي..."
-                  className="text-right"
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex gap-2 pt-4">
-                <Button type="submit" className="flex-1 gym-button">
-                  <Save className="w-4 h-4 mr-2" />
-                  {editingItem ? "تحديث" : "إضافة"}
-                </Button>
+              <DialogFooter>
                 <Button
-                  type="button"
                   variant="outline"
-                  onClick={handleCloseDialog}
+                  onClick={() => {
+                    resetForm();
+                    setIsAddDialogOpen(false);
+                  }}
                 >
-                  <X className="w-4 h-4 mr-2" />
                   إلغاء
                 </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+                <Button onClick={handleAdd}>
+                  <Save className="w-4 h-4 ml-2" />
+                  حفظ
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                إجمالي العناصر الغذائية
+              </CardTitle>
+              <Apple className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gym-primary">
+                {dietItems.length}
+              </div>
+              <p className="text-xs text-muted-foreground">عنصر متاح</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                عناصر بتعليمات تفصيلية
+              </CardTitle>
+              <Apple className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gym-secondary">
+                {dietItems.filter((item) => item.description).length}
+              </div>
+              <p className="text-xs text-muted-foreground">عنصر مفصل</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">نتائج البحث</CardTitle>
+              <Search className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gym-accent">
+                {filteredItems.length}
+              </div>
+              <p className="text-xs text-muted-foreground">عنصر ظاهر</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Search and Table */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              إجمالي العناصر
-            </CardTitle>
-            <Utensils className="h-4 w-4 text-muted-foreground" />
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <CardTitle>قائمة العناصر الغذائية</CardTitle>
+              <div className="relative">
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="البحث في العناصر الغذائية..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pr-10 w-full sm:w-80"
+                />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dietItems.length}</div>
+            {filteredItems.length === 0 ? (
+              <div className="text-center py-16">
+                <Apple className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">
+                  {searchTerm ? "لا توجد نتائج" : "لا توجد عناصر غذائية"}
+                </h3>
+                <p className="text-muted-foreground">
+                  {searchTerm
+                    ? "لم نجد أي عنصر غذائي يطابق بحثك"
+                    : "ابدأ بإضافة عناصر غذائية جديدة"}
+                </p>
+                {!searchTerm && (
+                  <Button
+                    onClick={() => setIsAddDialogOpen(true)}
+                    className="gym-button mt-4"
+                  >
+                    <Plus className="w-4 h-4 ml-2" />
+                    إضافة أول عنصر غذائي
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-right">
+                        اسم العنصر الغذائي
+                      </TableHead>
+                      <TableHead className="text-right">
+                        الوصف والتعليمات
+                      </TableHead>
+                      <TableHead className="text-right">
+                        تاريخ الإضافة
+                      </TableHead>
+                      <TableHead className="text-center">الإجراءات</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredItems.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">
+                          {item.name}
+                        </TableCell>
+                        <TableCell>
+                          {item.description ? (
+                            <span className="text-muted-foreground">
+                              {item.description.length > 50
+                                ? `${item.description.substring(0, 50)}...`
+                                : item.description}
+                            </span>
+                          ) : (
+                            <Badge variant="outline">بدون تعليمات</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDate(item.created_at)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => openEditDialog(item)}
+                              >
+                                <Edit className="w-4 h-4 ml-2" />
+                                تعديل
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => openDeleteDialog(item)}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="w-4 h-4 ml-2" />
+                                حذف
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
-        {Object.entries(categoryStats)
-          .slice(0, 3)
-          .map(([category, count]) => (
-            <Card key={category}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {category}
-                </CardTitle>
-                <Utensils className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{count}</div>
-              </CardContent>
-            </Card>
-          ))}
-      </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="البحث عن عنصر غذائي..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pr-10"
-          />
-        </div>
-        <select
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          className="w-full sm:w-48 p-2 border rounded-md text-right"
+        {/* Edit Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>تعديل العنصر الغذائي</DialogTitle>
+              <DialogDescription>
+                تعديل بيانات العنصر الغذائي "{selectedItem?.name}"
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">اسم العنصر الغذائي *</Label>
+                <Input
+                  id="edit-name"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  placeholder="مثل: بروتين مسحوق"
+                  className="text-right"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-description">الوصف والتعليمات</Label>
+                <Textarea
+                  id="edit-description"
+                  value={formData.description}
+                  onChange={(e) =>
+                    handleInputChange("description", e.target.value)
+                  }
+                  placeholder="مثل: 30 جرام بعد التمرين مباشرة"
+                  className="text-right min-h-[80px]"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  resetForm();
+                  setIsEditDialogOpen(false);
+                  setSelectedItem(null);
+                }}
+              >
+                إلغاء
+              </Button>
+              <Button onClick={handleEdit}>
+                <Save className="w-4 h-4 ml-2" />
+                حفظ التغييرات
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Dialog */}
+        <AlertDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
         >
-          <option value="الكل">جميع الفئات</option>
-          {dietCategories.map((category) => (
-            <option key={category} value={category}>
-              {category}
-            </option>
-          ))}
-        </select>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
+              <AlertDialogDescription>
+                هل أنت متأكد من حذف العنصر الغذائي "{selectedItem?.name}"؟ هذا
+                الإجراء لا يمكن التراجع عنه.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => {
+                  setIsDeleteDialogOpen(false);
+                  setSelectedItem(null);
+                }}
+              >
+                إلغاء
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                حذف
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
-
-      {/* Table */}
-      <Card className="gym-card">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table className="min-w-full">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-right">اسم العنصر</TableHead>
-                  <TableHead className="text-right">الفئة</TableHead>
-                  <TableHead className="text-right">السعرات</TableHead>
-                  <TableHead className="text-right">البروتين</TableHead>
-                  <TableHead className="text-right">الوصف</TableHead>
-                  <TableHead className="text-right">تاريخ الإضافة</TableHead>
-                  <TableHead className="text-right">العمليات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredItems.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      <div className="text-muted-foreground">
-                        {searchTerm || selectedCategory !== "الكل"
-                          ? "لم يتم العثور على عناصر مطابقة"
-                          : "لا توجد عناصر غذائية مضافة"}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredItems.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium text-right">
-                        {item.name}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant="secondary">{item.category}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {item.calories ? `${item.calories} kcal` : "-"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {item.protein ? `${item.protein}g` : "-"}
-                      </TableCell>
-                      <TableCell className="text-right max-w-xs">
-                        <div className="truncate" title={item.description}>
-                          {item.description || "لا يوجد وصف"}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatDate(item.created_at)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleEdit(item)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleDelete(item.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    </Layout>
   );
 }

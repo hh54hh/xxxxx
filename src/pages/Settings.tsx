@@ -1,373 +1,383 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Settings as SettingsIcon,
   Database,
-  Bell,
-  Palette,
-  Info,
+  Trash2,
+  Users,
+  Package,
+  ShoppingCart,
+  Dumbbell,
+  Apple,
+  AlertTriangle,
+  RotateCcw,
   Shield,
+  Info,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import DataBackup from "@/components/DataBackup";
-import SyncStatus from "@/components/SyncStatus";
-import SyncStatistics from "@/components/SyncStatistics";
-import DashboardStats from "@/components/DashboardStats";
-import {
-  diagnoseSyncIssues,
-  testSupabaseConnection,
-  cleanSyncQueue,
-} from "@/lib/syncService";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "@/hooks/use-toast";
+import { dbHelpers } from "@/lib/supabase";
+import Layout from "@/components/Layout";
 
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState("data");
+  const [isResetting, setIsResetting] = useState(false);
+
+  const handleResetDatabase = async () => {
+    setIsResetting(true);
+
+    try {
+      // In real implementation, this would reset all tables
+      await dbHelpers.resetDatabase();
+
+      toast({
+        title: "تم تفريغ قاعدة البيانات بنجاح",
+        description:
+          "تم حذف جميع البيانات من الجداول المحددة. سيتم إعادة تحميل الصفحة.",
+      });
+
+      // Reload the page after a short delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (error) {
+      toast({
+        title: "خطأ في تفريغ قاعدة البيانات",
+        description: "لم نتمكن من تفريغ قاعدة البيانات",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  const systemInfo = {
+    version: "1.0.0",
+    buildDate: "2024-01-01",
+    environment: "Development",
+    database: "Supabase (Mock)",
+  };
+
+  const databaseTables = [
+    {
+      name: "المشتركين",
+      table: "subscribers",
+      icon: Users,
+      description: "بيانات المشتركين الشخصية",
+      willBeDeleted: true,
+    },
+    {
+      name: "مجموعات البرامج",
+      table: "groups",
+      icon: Database,
+      description: "مجموعات الكورسات والأنظمة الغذائية",
+      willBeDeleted: true,
+    },
+    {
+      name: "عناصر المجموعات",
+      table: "group_items",
+      icon: Database,
+      description: "التمارين والعناصر الغذائية في كل مجموعة",
+      willBeDeleted: true,
+    },
+    {
+      name: "المنتجات",
+      table: "products",
+      icon: Package,
+      description: "منتجات المخزن",
+      willBeDeleted: true,
+    },
+    {
+      name: "المبيعات",
+      table: "sales",
+      icon: ShoppingCart,
+      description: "فواتير المبيعات",
+      willBeDeleted: true,
+    },
+    {
+      name: "تفاصيل المبيعات",
+      table: "sale_items",
+      icon: ShoppingCart,
+      description: "المنتجات المباعة في كل فاتورة",
+      willBeDeleted: true,
+    },
+    {
+      name: "نقاط الكورسات",
+      table: "course_points",
+      icon: Dumbbell,
+      description: "التمارين المتاحة",
+      willBeDeleted: false,
+    },
+    {
+      name: "العناصر الغذائية",
+      table: "diet_items",
+      icon: Apple,
+      description: "العناصر الغذائية المتاحة",
+      willBeDeleted: false,
+    },
+  ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">إعدادات النظام</h1>
-        <p className="text-muted-foreground">إدارة وتخصيص نظام صالة حسام جم</p>
+    <Layout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">الضبط</h1>
+          <p className="text-muted-foreground">
+            إعدادات النظام وإدارة قاعدة البيانات
+          </p>
+        </div>
+
+        {/* System Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Info className="w-5 h-5" />
+              معلومات النظام
+            </CardTitle>
+            <CardDescription>معلومات عن إصدار النظام والبيئة</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <div className="text-sm text-muted-foreground">
+                  إصدار النظام
+                </div>
+                <div className="font-semibold">{systemInfo.version}</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm text-muted-foreground">
+                  تاريخ البناء
+                </div>
+                <div className="font-semibold">{systemInfo.buildDate}</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm text-muted-foreground">البيئة</div>
+                <Badge variant="outline">{systemInfo.environment}</Badge>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm text-muted-foreground">
+                  قاعدة البيانات
+                </div>
+                <Badge variant="secondary">{systemInfo.database}</Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Database Management */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="w-5 h-5" />
+              إدارة قاعدة البيانات
+            </CardTitle>
+            <CardDescription>أدوات إدارة وصيانة قاعدة البيانات</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Database Tables Overview */}
+            <div>
+              <h4 className="font-semibold mb-4">جد��ول قاعدة البيانات</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {databaseTables.map((table) => {
+                  const Icon = table.icon;
+                  return (
+                    <div
+                      key={table.table}
+                      className={`flex items-center gap-3 p-3 rounded-lg border ${
+                        table.willBeDeleted
+                          ? "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800"
+                          : "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800"
+                      }`}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <div className="flex-1">
+                        <div className="font-medium">{table.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {table.description}
+                        </div>
+                      </div>
+                      <Badge
+                        variant={
+                          table.willBeDeleted ? "destructive" : "default"
+                        }
+                        className="text-xs"
+                      >
+                        {table.willBeDeleted ? "سيتم حذفه" : "سيبقى"}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Reset Database Section */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+                <h4 className="font-semibold text-destructive">
+                  تفريغ قاعدة البيانات
+                </h4>
+              </div>
+
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <Shield className="w-5 h-5 text-destructive mt-0.5" />
+                  <div className="space-y-2">
+                    <h5 className="font-medium text-destructive">تحذير مهم</h5>
+                    <p className="text-sm text-muted-foreground">
+                      هذا الإجراء سيحذف جميع البيانات الموضحة أعلاه باللون
+                      الأحمر بشكل نهائي ولا يمكن التراجع عنه. سيتم الاحتفاظ فقط
+                      بالتمارين والعناصر الغذائية المتاحة.
+                    </p>
+                    <div className="text-sm">
+                      <strong>سيتم حذف:</strong>
+                      <ul className="list-disc list-inside mt-1 space-y-1">
+                        <li>جميع بيانات المشتركين</li>
+                        <li>جميع برامج الكورسات والأنظمة الغذائية</li>
+                        <li>جميع المنتجات في المخزن</li>
+                        <li>جميع فواتير المبيعات</li>
+                      </ul>
+                    </div>
+                    <div className="text-sm">
+                      <strong>سيتم الاحتفاظ بـ:</strong>
+                      <ul className="list-disc list-inside mt-1 space-y-1">
+                        <li>قائمة التمارين المتاحة</li>
+                        <li>قائمة العناصر الغذائية المتاحة</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      disabled={isResetting}
+                      className="w-full sm:w-auto"
+                    >
+                      {isResetting ? (
+                        <>
+                          <RotateCcw className="w-4 h-4 ml-2 animate-spin" />
+                          جاري تفريغ قاعدة البيانات...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="w-4 h-4 ml-2" />
+                          تفريغ قاعدة البيانات
+                        </>
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                        <AlertTriangle className="w-5 h-5" />
+                        تأكيد تفريغ قاعدة البيانات
+                      </AlertDialogTitle>
+                      <AlertDialogDescription className="space-y-3">
+                        <p>
+                          <strong>تحذير نهائي:</strong> هذا الإجراء سيحذف جميع
+                          البيانات التالية بشكل نهائي:
+                        </p>
+                        <ul className="list-disc list-inside space-y-1 text-sm">
+                          <li>جميع المشتركين وبياناتهم</li>
+                          <li>جميع برامج التدريب والأنظمة الغذائية</li>
+                          <li>جميع منتجات المخزن</li>
+                          <li>جميع فواتير المبيعات</li>
+                        </ul>
+                        <p className="text-destructive font-medium">
+                          هل أنت متأكد بنسبة 100% من رغبتك في المتابعة؟
+                        </p>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>
+                        إلغاء - لا أريد المتابعة
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleResetDatabase}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        نعم، تفريغ قاعدة البيانات
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Future Features */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <SettingsIcon className="w-5 h-5" />
+              ميزات مستقبلية
+            </CardTitle>
+            <CardDescription>
+              ميزات وإعدادات ستكون متاحة في الإصدارات القادمة
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <h5 className="font-medium">إدارة المستخدمين</h5>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• إضافة مستخدمين جدد</li>
+                  <li>• تحديد صلاحيات المستخدمين</li>
+                  <li>• كلمات مرور متقدمة</li>
+                </ul>
+              </div>
+              <div className="space-y-3">
+                <h5 className="font-medium">النسخ الاحتياطية</h5>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• نسخ احتياطية تلقائية</li>
+                  <li>• استعادة النسخ الاحتياطية</li>
+                  <li>• تصدير البيانات</li>
+                </ul>
+              </div>
+              <div className="space-y-3">
+                <h5 className="font-medium">إعدادات الطباعة</h5>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• تخصيص تخطيط الطباعة</li>
+                  <li>• شعارات مخصصة</li>
+                  <li>• قوالب طباعة متعددة</li>
+                </ul>
+              </div>
+              <div className="space-y-3">
+                <h5 className="font-medium">الإحصائيات المتقدمة</h5>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• تقارير مفصلة</li>
+                  <li>• رسوم بيانية تفاعلية</li>
+                  <li>• تحليلات الأداء</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
-          <TabsTrigger value="data" className="text-xs sm:text-sm">
-            <Database className="w-4 h-4 mr-2" />
-            البيانات
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="text-xs sm:text-sm">
-            <Bell className="w-4 h-4 mr-2" />
-            التنبيهات
-          </TabsTrigger>
-          <TabsTrigger value="sync" className="text-xs sm:text-sm">
-            <Shield className="w-4 h-4 mr-2" />
-            المزامنة
-          </TabsTrigger>
-          <TabsTrigger value="about" className="text-xs sm:text-sm">
-            <Info className="w-4 h-4 mr-2" />
-            حول النظام
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Data Management Tab */}
-        <TabsContent value="data">
-          <DataBackup />
-        </TabsContent>
-
-        {/* Notifications Tab */}
-        <TabsContent value="notifications" className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold mb-2">إدارة التنبيهات</h2>
-            <p className="text-muted-foreground">تنبيهات المخزون والنظام</p>
-          </div>
-
-          <Card className="gym-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <Bell className="w-5 h-5 text-primary" />
-                إعدادات التنبيهات
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <h4 className="font-medium">تنبيهات المخزون المنخفض</h4>
-                    <p className="text-sm text-muted-foreground">
-                      إشعار عند نفاد أو انخفاض كمية المنتجات
-                    </p>
-                  </div>
-                  <Badge variant="default">مفعل</Badge>
-                </div>
-
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <h4 className="font-medium">تنبيهات المزامنة</h4>
-                    <p className="text-sm text-muted-foreground">
-                      إشعارات حالة مزامنة البيانات مع الخادم
-                    </p>
-                  </div>
-                  <Badge variant="default">مفعل</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Sync Status Tab */}
-        <TabsContent value="sync" className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold mb-2">المزامنة مع سوبربيس</h2>
-            <p className="text-muted-foreground">
-              مراقبة وإدارة مزامنة البيانات مع قاعدة بيانات سوبربيس
-            </p>
-          </div>
-
-          <SyncStatistics />
-
-          {/* Debug Section */}
-          <Card className="gym-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <SettingsIcon className="w-5 h-5 text-primary" />
-                أدوات التشخيص والإصلاح
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      toast.info("جاري تشخيص مشاكل المزامنة...");
-                      await diagnoseSyncIssues();
-                      toast.success(
-                        "تم إجراء التشخيص - تحقق من وحدة تحكم المطور للتفاصيل",
-                      );
-                    } catch (error) {
-                      toast.error("فشل في إجراء التشخيص");
-                      console.error("Diagnostics failed:", error);
-                    }
-                  }}
-                  className="w-full"
-                >
-                  تشخيص مشاكل المزامنة
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      toast.info("جاري اختبار اتصال سوبربيس...");
-                      const result = await testSupabaseConnection();
-                      if (result.success) {
-                        toast.success("✅ اتصال سوبربيس يعمل بشكل صحيح");
-                      } else {
-                        toast.error(`❌ فشل الاتصال بسوبربيس: ${result.error}`);
-                      }
-                    } catch (error) {
-                      toast.error("فشل في اختبار الاتصال");
-                      console.error("Connection test failed:", error);
-                    }
-                  }}
-                  className="w-full"
-                >
-                  اختبار اتصال سوبربيس
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      toast.info("جاري تنظيف قائمة المزامنة...");
-                      await cleanSyncQueue();
-                      toast.success("✅ تم تنظيف قائمة المزامنة بنجاح");
-                    } catch (error) {
-                      toast.error("فشل في تنظيف قائمة المزامنة");
-                      console.error("Queue cleaning failed:", error);
-                    }
-                  }}
-                  className="w-full"
-                >
-                  تنظيف قائمة المزامنة
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      toast.info("جاري اختبار النظام...");
-
-                      // Simple system test
-                      const { db } = await import("@/lib/database");
-                      const subscriberCount = await db.subscribers.count();
-                      const connectionTest = await testSupabaseConnection();
-
-                      if (connectionTest.success) {
-                        toast.success(
-                          `✅ النظام يعمل بشكل صحيح (${subscriberCount} مشترك)`,
-                        );
-                      } else {
-                        toast.error(
-                          `❌ مشكلة في الاتصال: ${connectionTest.error}`,
-                        );
-                      }
-                    } catch (error) {
-                      toast.error("فشل في اختبار النظام");
-                      console.error("System test failed:", error);
-                    }
-                  }}
-                  className="w-full"
-                >
-                  اختبار النظام الكامل
-                </Button>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                <p>
-                  استخدم أدوات التشخيص لمراقبة حالة المزامنة وحل أي مشاكل. تحقق
-                  من وحدة تحكم المطور (F12) لرؤية التفاصيل.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="gym-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <Shield className="w-5 h-5 text-primary" />
-                أمان البيانات
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">مزامنة مع سوبربيس</span>
-                  <Badge variant="default">مفعل</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">النسخ الاحتياطي التلقائي</span>
-                  <Badge variant="default">مفعل</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">المزامنة الآمنة (HTTPS)</span>
-                  <Badge variant="default">مفعل</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">العمل في وضع الأوف لاين</span>
-                  <Badge variant="default">مفعل</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">مزامنة تلقائية كل 5 دقائق</span>
-                  <Badge variant="default">مفعل</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* About Tab */}
-        <TabsContent value="about" className="space-y-6">
-          {/* System Overview Stats */}
-          <div>
-            <h2 className="text-2xl font-bold mb-2">نظرة عامة على النظام</h2>
-            <p className="text-muted-foreground mb-6">
-              إحصائيات شاملة عن جميع بيانات النظام
-            </p>
-          </div>
-
-          <DashboardStats />
-          <div>
-            <h2 className="text-2xl font-bold mb-2">حول النظام</h2>
-            <p className="text-muted-foreground">
-              معلومات النظام والمطورين والدعم الفني
-            </p>
-          </div>
-
-          <Card className="gym-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <SettingsIcon className="w-5 h-5 text-primary" />
-                صالة حسام جم - نظام الإدارة
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-semibold mb-2">معلومات النظام</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>الإصدار:</span>
-                      <span>2.0.0 PWA</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>تاريخ الإنشاء:</span>
-                      <span>2024</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>اللغة:</span>
-                      <span>العربية</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>قاعدة البيانات:</span>
-                      <span>IndexedDB + localStorage</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">المزايا المتاحة</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-xs">
-                        ✓
-                      </Badge>
-                      <span>إدارة المشتركين</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-xs">
-                        ✓
-                      </Badge>
-                      <span>إدارة الكورسات والأنظمة الغذائية</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-xs">
-                        ✓
-                      </Badge>
-                      <span>إدارة المخزن والمبيعات</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-xs">
-                        ✓
-                      </Badge>
-                      <span>طباعة التقارير والفواتير</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-xs">
-                        ✓
-                      </Badge>
-                      <span>العمل بدون إنترنت (PWA)</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t">
-                <h4 className="font-semibold mb-2">المواصفات التقنية</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <strong>الواجهة:</strong> React + TypeScript
-                  </div>
-                  <div>
-                    <strong>التصميم:</strong> TailwindCSS + Radix UI
-                  </div>
-                  <div>
-                    <strong>PWA:</strong> Service Worker + Offline Support
-                  </div>
-                  <div>
-                    <strong>التخزين:</strong> IndexedDB + localStorage
-                  </div>
-                  <div>
-                    <strong>الطباعة:</strong> CSS Print Media Queries
-                  </div>
-                  <div>
-                    <strong>المتجاوبية:</strong> Mobile-First Design
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="gym-card border-success bg-success/5">
-            <CardContent className="p-6 text-center">
-              <h3 className="font-bold text-lg mb-2">© 2024 صالة حسام جم</h3>
-              <p className="text-muted-foreground">
-                نظام إدارة الصالة الرياضية - جميع الحقوق محفوظة
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+    </Layout>
   );
 }
