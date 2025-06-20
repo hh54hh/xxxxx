@@ -10,9 +10,7 @@ import {
   Weight,
   Ruler,
   Calendar,
-  Dumbbell,
-  Apple,
-  Plus,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +37,8 @@ import { toast } from "@/hooks/use-toast";
 import { dbHelpers } from "@/lib/supabase";
 import { formatArabicDate, calculateBMI } from "@/lib/utils-enhanced";
 import { usePrintSubscriber } from "@/components/PrintSubscriber";
+import CoursePrograms from "@/components/CoursePrograms";
+import DietPrograms from "@/components/DietPrograms";
 import type { SubscriberWithGroups } from "@/types";
 import Layout from "@/components/Layout";
 
@@ -49,6 +49,11 @@ export default function SubscriberDetail() {
     null,
   );
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteInfo, setDeleteInfo] = useState<{
+    sales: number;
+    groups: number;
+  } | null>(null);
   const { printSubscriber } = usePrintSubscriber();
 
   useEffect(() => {
@@ -61,99 +66,25 @@ export default function SubscriberDetail() {
 
   const loadSubscriber = async () => {
     try {
-      // In real implementation, this would fetch from Supabase with groups
-      const mockSubscriber: SubscriberWithGroups = {
-        id: id!,
-        name: "أحمد محمد علي",
-        age: 25,
-        weight: 80,
-        height: 175,
-        phone: "01234567890",
-        notes: "يريد تقوية عضلات الصدر والذراعين",
-        subscription_date: "2024-01-15",
-        created_at: "2024-01-15T10:00:00Z",
-        updated_at: "2024-01-15T10:00:00Z",
-        groups: [
-          {
-            id: "1",
-            subscriber_id: id!,
-            type: "course",
-            title: "برنامج تقوية العضلات",
-            created_at: "2024-01-15T10:00:00Z",
-            updated_at: "2024-01-15T10:00:00Z",
-            items: [
-              {
-                id: "1",
-                group_id: "1",
-                item_id: "1",
-                created_at: "2024-01-15T10:00:00Z",
-                course_point: {
-                  id: "1",
-                  name: "تمرين الضغط",
-                  description: "20 عدة × 3 مجموعات",
-                  created_at: "2024-01-01T00:00:00Z",
-                  updated_at: "2024-01-01T00:00:00Z",
-                },
-              },
-              {
-                id: "2",
-                group_id: "1",
-                item_id: "2",
-                created_at: "2024-01-15T10:00:00Z",
-                course_point: {
-                  id: "2",
-                  name: "تمرين العقلة",
-                  description: "10 عدات × 4 مجموعات",
-                  created_at: "2024-01-01T00:00:00Z",
-                  updated_at: "2024-01-01T00:00:00Z",
-                },
-              },
-            ],
-          },
-          {
-            id: "2",
-            subscriber_id: id!,
-            type: "diet",
-            title: "نظام غذائي لزيادة الكتلة العضلية",
-            created_at: "2024-01-15T10:00:00Z",
-            updated_at: "2024-01-15T10:00:00Z",
-            items: [
-              {
-                id: "3",
-                group_id: "2",
-                item_id: "1",
-                created_at: "2024-01-15T10:00:00Z",
-                diet_item: {
-                  id: "1",
-                  name: "بروتين مسحوق",
-                  description: "30 جرام بعد التمرين",
-                  created_at: "2024-01-01T00:00:00Z",
-                  updated_at: "2024-01-01T00:00:00Z",
-                },
-              },
-              {
-                id: "4",
-                group_id: "2",
-                item_id: "2",
-                created_at: "2024-01-15T10:00:00Z",
-                diet_item: {
-                  id: "2",
-                  name: "صدر دجاج مشوي",
-                  description: "200 جرام مع الغداء",
-                  created_at: "2024-01-01T00:00:00Z",
-                  updated_at: "2024-01-01T00:00:00Z",
-                },
-              },
-            ],
-          },
-        ],
-      };
+      setIsLoading(true);
 
-      setSubscriber(mockSubscriber);
-    } catch (error) {
+      // جلب بيانات المشترك الحقيقية من قاعدة البيانات
+      const response = await dbHelpers.getSubscriberWithGroups(id!);
+
+      if (response.error) {
+        throw response.error;
+      }
+
+      if (!response.data) {
+        throw new Error("لم يتم العثور على المشترك");
+      }
+
+      setSubscriber(response.data);
+    } catch (error: any) {
+      console.error("خطأ في تحميل بيانات المشترك:", error);
       toast({
-        title: "خطأ في تحميل البيانات",
-        description: "لم نتمكن من تحميل بيانات المشترك",
+        title: "خطأ",
+        description: error.message || "حدث خطأ أثناء تحميل بيانات المشترك",
         variant: "destructive",
       });
       navigate("/dashboard");
@@ -162,32 +93,58 @@ export default function SubscriberDetail() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteClick = async () => {
     if (!subscriber) return;
 
     try {
-      await dbHelpers.deleteSubscriber(subscriber.id);
+      // فحص البيانات المرتبطة أولاً
+      const response = await dbHelpers.checkSubscriberRelations(subscriber.id);
+
+      if (response.data) {
+        setDeleteInfo(response.data);
+      } else {
+        // إذا فشل الفحص، نتابع بدون معلومات إضافية
+        setDeleteInfo({ sales: 0, groups: 0 });
+      }
+    } catch (error) {
+      console.error("خطأ في فحص البيانات المرتبطة:", error);
+      setDeleteInfo({ sales: 0, groups: 0 });
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!subscriber) return;
+
+    try {
+      setIsDeleting(true);
+
+      const response = await dbHelpers.deleteSubscriber(subscriber.id);
+
+      if (response.error) {
+        throw response.error;
+      }
+
       toast({
         title: "تم الحذف بنجاح",
-        description: `تم حذف المشترك ${subscriber.name}`,
+        description: "تم حذف المشترك وتنظيف جميع البيانات المرتبطة",
       });
       navigate("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
+      console.error("خطأ في حذف المشترك:", error);
       toast({
         title: "خطأ في الحذف",
-        description: "لم نتمكن من حذف المشترك",
+        description: error.message || "حدث خطأ أثناء حذف المشترك",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(false);
+      setDeleteInfo(null);
     }
   };
 
   const handlePrint = () => {
     if (subscriber) {
       printSubscriber(subscriber);
-      toast({
-        title: "تم إرسال الطباعة",
-        description: `تم إرسال بيانات ${subscriber.name} للطباعة`,
-      });
     }
   };
 
@@ -199,9 +156,11 @@ export default function SubscriberDetail() {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gym-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">جاري تحميل البيانات...</p>
+          <div className="text-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+            <p className="text-muted-foreground">
+              جاري تحميل بيانات المشترك...
+            </p>
           </div>
         </div>
       </Layout>
@@ -211,10 +170,14 @@ export default function SubscriberDetail() {
   if (!subscriber) {
     return (
       <Layout>
-        <div className="text-center py-16">
+        <div className="text-center py-12">
           <h2 className="text-2xl font-bold mb-4">المشترك غير موجود</h2>
+          <p className="text-muted-foreground mb-6">
+            لم يتم العثور على المشترك المطلوب
+          </p>
           <Button onClick={() => navigate("/dashboard")}>
-            العودة إلى قائمة المشتركين
+            <ArrowRight className="w-4 h-4 ml-2" />
+            العودة للوحة التحكم
           </Button>
         </div>
       </Layout>
@@ -225,57 +188,108 @@ export default function SubscriberDetail() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
-              size="icon"
+              size="sm"
               onClick={() => navigate("/dashboard")}
             >
-              <ArrowRight className="w-5 h-5" />
+              <ArrowRight className="w-4 h-4 ml-2" />
+              العودة
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">
-                {subscriber.name}
-              </h1>
-              <p className="text-muted-foreground">تفاصيل المشترك</p>
+              <h1 className="text-3xl font-bold">{subscriber.name}</h1>
+              <p className="text-muted-foreground">
+                تاريخ الاشتراك: {formatDate(subscriber.subscription_date)}
+              </p>
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handlePrint}>
+          <div className="flex items-center gap-2">
+            <Button onClick={handlePrint} variant="outline">
               <Printer className="w-4 h-4 ml-2" />
               طباعة
             </Button>
             <Button
-              variant="outline"
               onClick={() => navigate(`/edit-subscriber/${subscriber.id}`)}
+              variant="outline"
             >
               <Edit className="w-4 h-4 ml-2" />
               تعديل
             </Button>
-            <AlertDialog>
+            <AlertDialog
+              open={deleteInfo !== null}
+              onOpenChange={() => setDeleteInfo(null)}
+            >
               <AlertDialogTrigger asChild>
-                <Button variant="destructive">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeleteClick}
+                >
                   <Trash2 className="w-4 h-4 ml-2" />
                   حذف
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    هل أنت متأكد من حذف المشترك "{subscriber.name}"؟ هذا الإجراء
-                    لا يمكن التراجع عنه.
+                  <AlertDialogTitle>تأكيد حذف المشترك</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-3">
+                      <p>هل أنت متأكد من حذف المشترك "{subscriber.name}"؟</p>
+
+                      {deleteInfo && (
+                        <div className="bg-yellow-50 dark:bg-yellow-950 p-3 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                          <p className="font-medium text-yellow-800 dark:text-yellow-200 mb-2">
+                            ⚠️ تحذير: البيانات المرتبطة
+                          </p>
+                          <ul className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
+                            {deleteInfo.sales > 0 && (
+                              <li>
+                                • يوجد {deleteInfo.sales} فاتورة مبيعات مرتبطة -
+                                سيتم فصلها عن المشترك
+                              </li>
+                            )}
+                            {deleteInfo.groups > 0 && (
+                              <li>
+                                • يوجد {deleteInfo.groups} مجموعة تمارين/نظام
+                                غذائي - سيتم حذفها
+                              </li>
+                            )}
+                            {deleteInfo.sales === 0 &&
+                              deleteInfo.groups === 0 && (
+                                <li>
+                                  • لا توجد بيانات مرتبطة - يمكن الحذف بأمان
+                                </li>
+                              )}
+                          </ul>
+                        </div>
+                      )}
+
+                      <p className="text-sm text-muted-foreground">
+                        هذا الإجراء لا يمكن التراجع عنه.
+                      </p>
+                    </div>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                  <AlertDialogCancel disabled={isDeleting}>
+                    إلغاء
+                  </AlertDialogCancel>
                   <AlertDialogAction
-                    onClick={handleDelete}
+                    onClick={handleConfirmDelete}
+                    disabled={isDeleting}
                     className="bg-destructive hover:bg-destructive/90"
                   >
-                    حذف
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                        جاري الحذف...
+                      </>
+                    ) : (
+                      "تأكيد الحذف"
+                    )}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -348,10 +362,10 @@ export default function SubscriberDetail() {
                         variant="secondary"
                         className={`text-lg ${bmiData.color}`}
                       >
-                        {bmiData.value}
+                        {bmiData.bmi}
                       </Badge>
                       <span className={`text-sm ${bmiData.color}`}>
-                        {bmiData.category}
+                        {bmiData.status}
                       </span>
                     </>
                   );
@@ -373,123 +387,41 @@ export default function SubscriberDetail() {
           )}
         </Card>
 
-        {/* Courses */}
-        <Card className="print-section">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Dumbbell className="w-5 h-5" />
-                الكورسات والتمارين
-              </CardTitle>
-              <Button size="sm" variant="outline">
-                <Plus className="w-4 h-4 ml-2" />
-                إضافة مجموعة
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {subscriber.groups
-              ?.filter((group) => group.type === "course")
-              .map((group) => (
-                <div key={group.id} className="avoid-break">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-lg">
-                      {group.title || "مجموعة تمارين"}
-                    </h4>
-                    <Badge>{group.items?.length || 0} تمرين</Badge>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {group.items?.map((item) => (
-                      <div
-                        key={item.id}
-                        className="border rounded-lg p-3 bg-muted/50"
-                      >
-                        <h5 className="font-medium">
-                          {item.course_point?.name}
-                        </h5>
-                        {item.course_point?.description && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {item.course_point.description}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  {group.items?.length === 0 && (
-                    <p className="text-muted-foreground">
-                      لم يتم إضافة تمارين لهذه المجموعة بعد
-                    </p>
-                  )}
+        {/* Course Programs */}
+        <CoursePrograms groups={subscriber.groups || []} />
+
+        {/* Diet Programs */}
+        <DietPrograms groups={subscriber.groups || []} />
+
+        {/* Empty State for No Programs */}
+        {(!subscriber.groups || subscriber.groups.length === 0) && (
+          <Card>
+            <CardContent className="text-center py-12">
+              <div className="space-y-4">
+                <div className="w-24 h-24 mx-auto bg-muted rounded-full flex items-center justify-center">
+                  <User className="w-12 h-12 text-muted-foreground" />
                 </div>
-              ))}
-
-            {subscriber.groups?.filter((group) => group.type === "course")
-              .length === 0 && (
-              <p className="text-muted-foreground text-center py-8">
-                لم يتم إضافة كورسات لهذا المشترك بعد
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Diet */}
-        <Card className="print-section">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Apple className="w-5 h-5" />
-                الأنظمة الغذائية
-              </CardTitle>
-              <Button size="sm" variant="outline">
-                <Plus className="w-4 h-4 ml-2" />
-                إضافة نظام غذائي
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {subscriber.groups
-              ?.filter((group) => group.type === "diet")
-              .map((group) => (
-                <div key={group.id} className="avoid-break">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-lg">
-                      {group.title || "نظام غذائي"}
-                    </h4>
-                    <Badge variant="secondary">
-                      {group.items?.length || 0} عنصر
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {group.items?.map((item) => (
-                      <div
-                        key={item.id}
-                        className="border rounded-lg p-3 bg-muted/50"
-                      >
-                        <h5 className="font-medium">{item.diet_item?.name}</h5>
-                        {item.diet_item?.description && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {item.diet_item.description}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  {group.items?.length === 0 && (
-                    <p className="text-muted-foreground">
-                      لم يتم إضافة عناصر غذائية لهذه المجموعة بعد
-                    </p>
-                  )}
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">
+                    لا توجد برامج مضافة
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    لم يتم إضافة أي برامج تمرين أو أنظمة غذائية لهذا المشت��ك
+                    بعد
+                  </p>
+                  <Button
+                    onClick={() =>
+                      navigate(`/edit-subscriber/${subscriber.id}`)
+                    }
+                  >
+                    <Edit className="w-4 h-4 ml-2" />
+                    إضافة برامج
+                  </Button>
                 </div>
-              ))}
-
-            {subscriber.groups?.filter((group) => group.type === "diet")
-              .length === 0 && (
-              <p className="text-muted-foreground text-center py-8">
-                لم يتم إضافة أنظمة غذائية لهذا المشترك بعد
-              </p>
-            )}
-          </CardContent>
-        </Card>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </Layout>
   );

@@ -200,47 +200,20 @@ export default function AddSubscriber() {
     setIsLoading(true);
 
     try {
-      // Create subscriber
+      // إنشاء المشترك مع جميع المجموعات
       const subscriberData = {
         ...formData,
         subscription_date: new Date().toISOString().split("T")[0],
       };
 
-      const subscriberResponse =
-        await dbHelpers.createSubscriber(subscriberData);
+      const response = await dbHelpers.createSubscriberWithGroups({
+        subscriber: subscriberData,
+        courseGroups,
+        dietGroups,
+      });
 
-      if (!subscriberResponse.data?.[0]) {
-        throw new Error("Failed to create subscriber");
-      }
-
-      const subscriberId = subscriberResponse.data[0].id;
-
-      // Create course groups
-      for (const courseGroup of courseGroups) {
-        const groupData = {
-          subscriber_id: subscriberId,
-          type: "course" as const,
-          title: courseGroup.title || null,
-        };
-
-        // This would create the group and its items in real implementation
-        console.log(
-          "Creating course group:",
-          groupData,
-          courseGroup.selectedCourses,
-        );
-      }
-
-      // Create diet groups
-      for (const dietGroup of dietGroups) {
-        const groupData = {
-          subscriber_id: subscriberId,
-          type: "diet" as const,
-          title: dietGroup.title || null,
-        };
-
-        // This would create the group and its items in real implementation
-        console.log("Creating diet group:", groupData, dietGroup.selectedItems);
+      if (response.error || !response.data) {
+        throw response.error || new Error("فشل في إنشاء المشترك");
       }
 
       toast({

@@ -18,12 +18,17 @@ dist-ssr
 .npm/
 .eslintcache
 
-# Environment files (معلومات سرية)
+# Environment files (معلومات سرية - محمية بقوة)
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*
+
+# ملفات قاعدة البيانات السرية
+**/supabase-key.txt
+**/database-credentials.txt
 
 # Log files (ملفات السجلات المؤقتة)
 logs/

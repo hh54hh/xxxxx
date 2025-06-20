@@ -158,7 +158,7 @@ export default function Sales() {
             name: "كرياتين",
             price: 20000,
             stock: 14,
-            description: "مكمل الكرياتين لزيادة القوة",
+            description: "مكمل الكرياتين لزياد�� القوة",
             created_at: "2024-01-01T00:00:00Z",
             updated_at: "2024-01-16T10:15:00Z",
           },
@@ -210,16 +210,16 @@ export default function Sales() {
 
   const loadData = async () => {
     try {
-      const [productsResponse, subscribersResponse] = await Promise.all([
-        dbHelpers.getProducts(),
-        dbHelpers.getSubscribers(),
-      ]);
+      const [productsResponse, subscribersResponse, salesResponse] =
+        await Promise.all([
+          dbHelpers.getProducts(),
+          dbHelpers.getSubscribers(),
+          dbHelpers.getSales(),
+        ]);
 
       if (productsResponse.data) setProducts(productsResponse.data);
       if (subscribersResponse.data) setSubscribers(subscribersResponse.data);
-
-      // Set mock sales data
-      setSales(mockSales);
+      if (salesResponse.data) setSales(salesResponse.data);
     } catch (error) {
       toast({
         title: "خطأ في تحميل البيانات",
@@ -308,38 +308,35 @@ export default function Sales() {
     }
 
     try {
-      const newSale: SaleWithItems = {
-        id: Date.now().toString(),
+      const saleData: SaleFormData = {
         subscriber_id:
-          customerType === "subscriber" ? selectedSubscriber : null,
-        customer_name: customerType === "guest" ? customerName : null,
-        total_amount: calculateTotal(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        subscriber:
-          customerType === "subscriber"
-            ? subscribers.find((s) => s.id === selectedSubscriber)
-            : undefined,
-        items: saleItems.map((item, index) => ({
-          id: `${Date.now()}-${index}`,
-          sale_id: Date.now().toString(),
-          ...item,
-          created_at: new Date().toISOString(),
-          product: products.find((p) => p.id === item.product_id),
-        })),
+          customerType === "subscriber" ? selectedSubscriber : undefined,
+        customer_name: customerType === "guest" ? customerName : undefined,
+        items: saleItems,
       };
 
-      setSales((prev) => [newSale, ...prev]);
+      const response = await dbHelpers.createSale(saleData);
+
+      if (response.error || !response.data?.[0]) {
+        throw response.error || new Error("فشل في إنشاء المبيعة");
+      }
+
+      // إضافة المبيعة الجديدة إلى القائمة
+      setSales((prev) => [response.data[0], ...prev]);
+
+      // تحديث قائمة المنتجات لتعكس التغييرات في المخزون
+      await loadData();
+
       toast({
         title: "تم إنشاء الفاتورة بنجاح",
         description: `تم إنشاء فاتورة بقيمة ${formatIQD(calculateTotal())}`,
       });
       resetForm();
       setIsAddDialogOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "خطأ في إنشاء الفاتورة",
-        description: "لم نتمكن من إنشاء الفاتورة",
+        description: error.message || "لم نتمكن من إنشاء الفاتورة",
         variant: "destructive",
       });
     }
