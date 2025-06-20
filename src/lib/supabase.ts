@@ -45,7 +45,7 @@ function handleDatabaseError(operation: string, error: any): Error {
   const message = getErrorMessage(error);
   console.error(`❌ خطأ في ${operation}:`, message);
 
-  // تحسين رسائل الخطأ للمستخدم
+  // تح��ين رسائل الخطأ للمستخدم
   if (message.includes("does not exist")) {
     return new Error(
       "الجدول المطلوب غير موجود في قاعدة البيانات. يرجى إنشاء الجداول أولاً.",
@@ -135,46 +135,49 @@ export const dbHelpers = {
               // جلب العناصر التدريبية
               const { data: courseItems } = await supabase
                 .from("group_course_items")
-                .select(`
+                .select(
+                  `
                   *,
                   course_points (*)
-                `)
+                `,
+                )
                 .eq("group_id", group.id);
 
-              items = (courseItems || []).map(item => ({
+              items = (courseItems || []).map((item) => ({
                 id: item.id,
                 group_id: item.group_id,
                 item_id: item.course_point_id,
                 created_at: item.created_at,
                 course_point: item.course_points,
-                diet_item: null
+                diet_item: null,
               }));
-
             } else if (group.type === "diet") {
               // جلب العناصر الغذائية
               const { data: dietItems } = await supabase
                 .from("group_diet_items")
-                .select(`
+                .select(
+                  `
                   *,
                   diet_items (*)
-                `)
+                `,
+                )
                 .eq("group_id", group.id);
 
-              items = (dietItems || []).map(item => ({
+              items = (dietItems || []).map((item) => ({
                 id: item.id,
                 group_id: item.group_id,
                 item_id: item.diet_item_id,
                 created_at: item.created_at,
                 course_point: null,
-                diet_item: item.diet_items
+                diet_item: item.diet_items,
               }));
             }
 
             return {
               ...group,
-              group_items: items
+              group_items: items,
             };
-          })
+          }),
         );
 
         groups = groupsWithItems;
@@ -189,12 +192,19 @@ export const dbHelpers = {
             );
             groups = [];
           } else {
-            console.error("تفاصيل خطأ المجموعات:", JSON.stringify({
-              message: errorMessage,
-              code: groupsError?.code,
-              details: groupsError?.details,
-              hint: groupsError?.hint
-            }, null, 2));
+            console.error(
+              "تفاصيل خطأ المجموعات:",
+              JSON.stringify(
+                {
+                  message: errorMessage,
+                  code: groupsError?.code,
+                  details: groupsError?.details,
+                  hint: groupsError?.hint,
+                },
+                null,
+                2,
+              ),
+            );
             throw groupsError;
           }
         } else {
@@ -215,12 +225,19 @@ export const dbHelpers = {
         const errorMessage = getErrorMessage(groupsError);
         console.error("❌ خطأ في جلب المجموعات:", errorMessage);
         console.warn("⚠️ سيتم استخدام قائمة فارغة للمجموعات");
-        console.error("تفاصيل الخطأ:", JSON.stringify({
-          message: errorMessage,
-          code: groupsError?.code,
-          details: groupsError?.details,
-          hint: groupsError?.hint
-        }, null, 2));
+        console.error(
+          "تفاصيل الخطأ:",
+          JSON.stringify(
+            {
+              message: errorMessage,
+              code: groupsError?.code,
+              details: groupsError?.details,
+              hint: groupsError?.hint,
+            },
+            null,
+            2,
+          ),
+        );
         groups = [];
       }
 
@@ -383,7 +400,7 @@ export const dbHelpers = {
         }
       }
 
-      // الآن ��ذف المجموعات المرتبطة (groups و group_items)
+      // الآن حذف المجموعات المرتبطة (groups و group_items)
       const { error: groupsDeleteError } = await supabase
         .from("groups")
         .delete()
@@ -548,7 +565,7 @@ export const dbHelpers = {
 
   async getDietItems(): Promise<SupabaseResponse<DietItem[]>> {
     try {
-      console.log("🔍 جلب عناص�� النظام الغذائي...");
+      console.log("🔍 جلب عناصر النظام الغذائي...");
 
       const { data, error } = await supabase
         .from("diet_items")
@@ -695,7 +712,7 @@ export const dbHelpers = {
         throw handleDatabaseError("��نشاء منتج", error);
       }
 
-      console.log("✅ تم إنشاء المنتج بنجاح");
+      console.log("✅ تم إنشاء المنت�� بنجاح");
       return { data: data || [], error: null };
     } catch (error: any) {
       return { data: null, error: handleDatabaseError("إنشاء منتج", error) };
@@ -741,7 +758,7 @@ export const dbHelpers = {
         throw handleDatabaseError("حذف المنتج", error);
       }
 
-      console.log("✅ تم حذف المنتج بنجاح");
+      console.log("✅ تم ح��ف المنتج بنجاح");
       return { data: null, error: null };
     } catch (error: any) {
       return { data: null, error: handleDatabaseError("حذف المنتج", error) };
@@ -957,7 +974,6 @@ export const dbHelpers = {
           throw handleDatabaseError("إنشاء عناصر مجموعة التدريب", courseError);
         }
         result = courseResult || [];
-
       } else if (data.type === "diet") {
         // إدراج في جدول المجموعات الغذائية
         const dietItems = data.item_ids.map((diet_item_id) => ({
@@ -975,7 +991,6 @@ export const dbHelpers = {
           throw handleDatabaseError("إنشاء عناصر مجموعة الغذاء", dietError);
         }
         result = dietResult || [];
-      }
       }
 
       console.log("✅ تم إنشاء عناصر المجموعة بنجاح");
