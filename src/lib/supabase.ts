@@ -382,7 +382,7 @@ export const dbHelpers = {
         console.warn("⚠️ خطأ في فحص المبيعات:", salesCheckError.message);
       }
 
-      // إذا كان هناك مبيعات م��تبطة، نقوم بتحديث subscriber_id إلى null
+      // إذا كان هناك مبيعات مرتبطة، نقوم بتحديث subscriber_id إلى null
       if (relatedSales && relatedSales.length > 0) {
         console.log(
           `📋 تم العثور على ${relatedSales.length} مبيعة مرتبطة، سيتم فصلها عن المشترك`,
@@ -811,7 +811,7 @@ export const dbHelpers = {
     formData: SaleFormData,
   ): Promise<SupabaseResponse<SaleWithItems[]>> {
     try {
-      console.log("📝 إنشاء مبيعة ��ديدة");
+      console.log("📝 إنشاء مبيعة جديدة");
 
       // حساب المجموع الكلي
       const totalAmount = formData.items.reduce(
@@ -1103,7 +1103,7 @@ export const dbHelpers = {
 
           if (groupResponse.data?.[0]) {
             const groupId = groupResponse.data[0].id;
-            console.log("✅ تم إنشاء مجموعة الأنظمة الغذائية، ID:", groupId);
+            console.log("�� تم إنشاء مجموعة الأنظمة الغذائية، ID:", groupId);
 
             const itemsResponse = await this.createGroupItems({
               group_id: groupId,
@@ -1156,7 +1156,7 @@ export const dbHelpers = {
       if (error) {
         // إذا كان الخطأ بسبب عدم وجود الجدول، فالاتصال يعمل لكن الجداول غير موجودة
         if (error.message.includes("does not exist")) {
-          console.log("⚠️ الاتصال يعمل لكن جدول subscribers غير مو��ود");
+          console.log("⚠️ الاتصال يعمل لكن جدول subscribers غير موجود");
           return {
             data: false,
             error: new Error(
