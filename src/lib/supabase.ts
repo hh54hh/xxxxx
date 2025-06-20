@@ -135,49 +135,46 @@ export const dbHelpers = {
               // جلب العناصر التدريبية
               const { data: courseItems } = await supabase
                 .from("group_course_items")
-                .select(
-                  `
+                .select(`
                   *,
                   course_points (*)
-                `,
-                )
+                `)
                 .eq("group_id", group.id);
 
-              items = (courseItems || []).map((item) => ({
+              items = (courseItems || []).map(item => ({
                 id: item.id,
                 group_id: item.group_id,
                 item_id: item.course_point_id,
                 created_at: item.created_at,
                 course_point: item.course_points,
-                diet_item: null,
+                diet_item: null
               }));
+
             } else if (group.type === "diet") {
               // جلب العناصر الغذائية
               const { data: dietItems } = await supabase
                 .from("group_diet_items")
-                .select(
-                  `
+                .select(`
                   *,
                   diet_items (*)
-                `,
-                )
+                `)
                 .eq("group_id", group.id);
 
-              items = (dietItems || []).map((item) => ({
+              items = (dietItems || []).map(item => ({
                 id: item.id,
                 group_id: item.group_id,
                 item_id: item.diet_item_id,
                 created_at: item.created_at,
                 course_point: null,
-                diet_item: item.diet_items,
+                diet_item: item.diet_items
               }));
             }
 
             return {
               ...group,
-              group_items: items,
+              group_items: items
             };
-          }),
+          })
         );
 
         groups = groupsWithItems;
@@ -192,19 +189,12 @@ export const dbHelpers = {
             );
             groups = [];
           } else {
-            console.error(
-              "تفاصيل خطأ المجموعات:",
-              JSON.stringify(
-                {
-                  message: errorMessage,
-                  code: groupsError?.code,
-                  details: groupsError?.details,
-                  hint: groupsError?.hint,
-                },
-                null,
-                2,
-              ),
-            );
+            console.error("تفاصيل خطأ المجموعات:", JSON.stringify({
+              message: errorMessage,
+              code: groupsError?.code,
+              details: groupsError?.details,
+              hint: groupsError?.hint
+            }, null, 2));
             throw groupsError;
           }
         } else {
@@ -225,19 +215,12 @@ export const dbHelpers = {
         const errorMessage = getErrorMessage(groupsError);
         console.error("❌ خطأ في جلب المجموعات:", errorMessage);
         console.warn("⚠️ سيتم استخدام قائمة فارغة للمجموعات");
-        console.error(
-          "تفاصيل الخطأ:",
-          JSON.stringify(
-            {
-              message: errorMessage,
-              code: groupsError?.code,
-              details: groupsError?.details,
-              hint: groupsError?.hint,
-            },
-            null,
-            2,
-          ),
-        );
+        console.error("تفاصيل الخطأ:", JSON.stringify({
+          message: errorMessage,
+          code: groupsError?.code,
+          details: groupsError?.details,
+          hint: groupsError?.hint
+        }, null, 2));
         groups = [];
       }
 
@@ -400,7 +383,7 @@ export const dbHelpers = {
         }
       }
 
-      // الآن حذف المجموعات المرتبطة (groups و group_items)
+      // الآن ��ذف المجموعات المرتبطة (groups و group_items)
       const { error: groupsDeleteError } = await supabase
         .from("groups")
         .delete()
@@ -441,7 +424,7 @@ export const dbHelpers = {
         return {
           data: null,
           error: new Error(
-            "لا يمكن حذف المشترك لأنه مرتبط بمبيعات أو بيانات أخرى. تم تحديث قاع��ة البيانات، يرجى المحاولة مرة أخرى.",
+            "لا يمكن حذف المشترك لأنه مرتبط بمبيعات أو بيانات أخرى. تم تحديث قاعدة البيانات، يرجى المحاولة مرة أخرى.",
           ),
         };
       }
@@ -565,7 +548,7 @@ export const dbHelpers = {
 
   async getDietItems(): Promise<SupabaseResponse<DietItem[]>> {
     try {
-      console.log("🔍 جلب عناصر النظام الغذائي...");
+      console.log("🔍 جلب عناص�� النظام الغذائي...");
 
       const { data, error } = await supabase
         .from("diet_items")
@@ -750,7 +733,7 @@ export const dbHelpers = {
 
   async deleteProduct(id: string): Promise<SupabaseResponse<void>> {
     try {
-      console.log("🗑�� حذف المنتج:", id);
+      console.log("🗑️ حذف المنتج:", id);
 
       const { error } = await supabase.from("products").delete().eq("id", id);
 
@@ -950,23 +933,49 @@ export const dbHelpers = {
   async createGroupItems(data: {
     group_id: string;
     item_ids: string[];
+    type: "course" | "diet";
   }): Promise<SupabaseResponse<any[]>> {
     try {
-      console.log("📝 إنشاء عناصر المجموعة:", data.item_ids.length);
+      console.log("📝 إنشاء عناصر المجموعة:", data.type, data.item_ids.length);
 
-      const groupItems = data.item_ids.map((item_id) => ({
-        group_id: data.group_id,
-        item_id,
-        created_at: new Date().toISOString(),
-      }));
+      let result: any[] = [];
 
-      const { data: result, error } = await supabase
-        .from("group_items")
-        .insert(groupItems)
-        .select();
+      if (data.type === "course") {
+        // إدراج في جدول المجموعات التدريبية
+        const courseItems = data.item_ids.map((course_point_id) => ({
+          group_id: data.group_id,
+          course_point_id,
+          created_at: new Date().toISOString(),
+        }));
 
-      if (error) {
-        throw handleDatabaseError("إنشاء عناصر المجموعة", error);
+        const { data: courseResult, error: courseError } = await supabase
+          .from("group_course_items")
+          .insert(courseItems)
+          .select();
+
+        if (courseError) {
+          throw handleDatabaseError("إنشاء عناصر مجموعة التدريب", courseError);
+        }
+        result = courseResult || [];
+
+      } else if (data.type === "diet") {
+        // إدراج في جدول المجموعات الغذائية
+        const dietItems = data.item_ids.map((diet_item_id) => ({
+          group_id: data.group_id,
+          diet_item_id,
+          created_at: new Date().toISOString(),
+        }));
+
+        const { data: dietResult, error: dietError } = await supabase
+          .from("group_diet_items")
+          .insert(dietItems)
+          .select();
+
+        if (dietError) {
+          throw handleDatabaseError("إنشاء عناصر مجموعة الغذاء", dietError);
+        }
+        result = dietResult || [];
+      }
       }
 
       console.log("✅ تم إنشاء عناصر المجموعة بنجاح");
@@ -1047,7 +1056,7 @@ export const dbHelpers = {
             courseGroupsCreated++;
           }
         } else {
-          console.log(`⚠️ مجموعة كورس��ت ${index + 1} فارغة، تم تجاهلها`);
+          console.log(`⚠️ مجموعة كورسات ${index + 1} فارغة، تم تجاهلها`);
         }
       }
 
