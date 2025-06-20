@@ -24,7 +24,13 @@
     "quick-upload": "bash quick-upload.sh",
     "upload": "bash quick-upload.sh 'تحديث المشروع'",
     "test-db": "node test-database.js",
-    "check-connection": "npm run test-db"
+    "check-connection": "npm run test-db",
+    "backup": "bash backup-system.sh",
+    "security-check": "npm audit && npm run typecheck",
+    "pre-deploy": "npm run security-check && npm run test && npm run build",
+    "clean": "rm -rf dist node_modules/.cache",
+    "fresh-install": "rm -rf node_modules package-lock.json && npm install",
+    "github-safe": "npm run security-check && npm run backup && echo 'جاهز للرفع على GitHub ✅'"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
