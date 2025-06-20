@@ -1,5 +1,32 @@
-# Logs
-logs
+# ==============================================
+# ملف حماية الملفات من الحذف - لا تعدل هذا الملف
+# ==============================================
+
+# Node.js Dependencies (لا نريد رفعها)
+node_modules/
+/.pnp
+.pnp.js
+
+# Build outputs (مؤقتة - يتم إنشاؤها تلقائياً)
+/dist
+/build
+dist-ssr
+
+# Cache directories
+.cache/
+.parcel-cache/
+.npm/
+.eslintcache
+
+# Environment files (معلومات سرية)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Log files (ملفات السجلات المؤقتة)
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,18 +34,110 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# OS generated files (ملفات النظام)
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# IDE files (إعدادات المحرر)
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Runtime files
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory
+coverage/
+*.lcov
+
+# ==============================================
+# قائمة الملفات المحمية - يجب الاحتفاظ بها
+# ==============================================
+
+# *** لا تحذف هذه الملفات أبداً ***
+
+# الملفات الأساسية للمشروع
+!package.json
+!package-lock.json
+!index.html
+!README.md
+!AGENTS.md
+!UPLOAD_GUIDE.md
+
+# ملفات التكوين
+!vite.config.ts
+!tailwind.config.ts
+!postcss.config.js
+!tsconfig.json
+!tsconfig.app.json
+!tsconfig.node.json
+!components.json
+
+# قاعدة البيانات
+!database_setup.sql
+
+# جميع ملفات src - محمية بالكامل
+!src/
+!src/**/*
+!src/**/*.ts
+!src/**/*.tsx
+!src/**/*.js
+!src/**/*.jsx
+!src/**/*.css
+!src/**/*.json
+
+# مجلد المكونات محمي بالكامل
+!src/components/
+!src/components/**/*
+!src/components/ui/
+!src/components/ui/**/*
+
+# مجلد الصفحات محمي بالكامل
+!src/pages/
+!src/pages/**/*
+
+# مجلد المكتبات محمي بالكامل
+!src/lib/
+!src/lib/**/*
+
+# مجلد الأنواع محمي بالكامل
+!src/types/
+!src/types/**/*
+
+# مجلد الخطافات محمي بالكامل
+!src/hooks/
+!src/hooks/**/*
+
+# الملفات العامة
+!public/
+!public/**/*
+
+# ملفات Git
+!.gitignore
+!.gitattributes
+
+# ملفات الحماية
+!backup-system.sh
+!check-files.sh
+!git-safety.sh
+!pre-commit-check.sh
+
+# ==============================================
+# تعليمات مهمة
+# ==============================================
+# 1. لا تعدل هذا الملف إلا إذا كنت تعرف ما تفعل
+# 2. جميع ملفات src محمية ولن تُحذف
+# 3. استخدم git add . بأمان
+# 4. تأكد من تشغيل check-files.sh قبل الرفع

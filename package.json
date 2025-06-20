@@ -7,7 +7,17 @@
     "build": "vite build",
     "test": "vitest --run",
     "format.fix": "prettier --write .",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "check-files": "bash check-files.sh",
+    "git-safety": "bash git-safety.sh",
+    "pre-commit": "bash pre-commit-check.sh",
+    "safe-add": "npm run git-safety && git add .",
+    "safe-commit": "npm run pre-commit",
+    "safe-push": "npm run safe-commit && git push origin main",
+    "protect-files": "npm run git-safety && echo 'جميع الملفات محمية ✅'",
+    "upload-safe": "npm run protect-files && npm run safe-add && git status",
+    "quick-upload": "bash quick-upload.sh",
+    "upload": "bash quick-upload.sh 'تحديث المشروع'"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

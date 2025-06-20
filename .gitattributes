@@ -1,0 +1,151 @@
+# ==============================================
+# إعدادات Git المتقدمة لحماية الملفات
+# ==============================================
+
+# إعدادات عامة - معالجة تلقائية للنصوص
+* text=auto eol=lf
+
+# ==============================================
+# حماية ملفات المصدر من التلف أو التغيير
+# ==============================================
+
+# ملفات TypeScript و JavaScript - نصوص محمية
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+
+# ملفات JSON - نصوص محمية مع تنسيق
+*.json text eol=lf
+
+# ملفات CSS - نصوص محمية
+*.css text eol=lf
+*.scss text eol=lf
+*.sass text eol=lf
+*.less text eol=lf
+
+# ملفات HTML - نصوص محمية
+*.html text eol=lf
+
+# ملفات Markdown - نصوص محمية
+*.md text eol=lf
+*.markdown text eol=lf
+
+# ==============================================
+# حماية ملفات التكوين
+# ==============================================
+
+# ملفات package.json محمية خصوصاً
+package.json text eol=lf
+package-lock.json text eol=lf
+
+# ملفات التكوين
+*.config.js text eol=lf
+*.config.ts text eol=lf
+*.config.json text eol=lf
+vite.config.ts text eol=lf
+tailwind.config.ts text eol=lf
+postcss.config.js text eol=lf
+
+# ملفات TypeScript config
+tsconfig.json text eol=lf
+tsconfig.*.json text eol=lf
+
+# ملفات أخرى مهمة
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.npmrc text eol=lf
+.prettierrc text eol=lf
+
+# ==============================================
+# حماية قاعدة البيانات والنصوص
+# ==============================================
+
+# ملفات قاعدة البيانات
+*.sql text eol=lf
+
+# ملفات البيئة
+*.env text eol=lf
+
+# ==============================================
+# ملفات الوسائط والأصول
+# ==============================================
+
+# الصور - ثنائية محمية
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+
+# ملفات SVG - نص (لإمكانية التعديل)
+*.svg text eol=lf
+
+# الخطوط - ثنائية
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.otf binary
+
+# ==============================================
+# ملفات النظام والأدوات
+# ==============================================
+
+# ملفات Shell scripts
+*.sh text eol=lf
+
+# ملفات Docker
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+
+# ==============================================
+# قواعد خاصة للحماية الإضافية
+# ==============================================
+
+# منع Git من تغيير نهايات الأسطر في الملفات الحرجة
+src/lib/utils.ts text eol=lf
+src/lib/supabase.ts text eol=lf
+src/lib/utils-enhanced.ts text eol=lf
+src/App.tsx text eol=lf
+src/main.tsx text eol=lf
+
+# حماية ملفات المكونات الرئيسية
+src/components/Layout.tsx text eol=lf
+src/components/ui/*.tsx text eol=lf
+
+# حماية ملفات الصفحات
+src/pages/*.tsx text eol=lf
+
+# ==============================================
+# منع Git من معالجة ملفات معينة
+# ==============================================
+
+# ملفات نظام التشغيل - تجاهل
+.DS_Store binary
+Thumbs.db binary
+
+# ملفات IDE - تجاهل
+*.swp binary
+*.swo binary
+
+# ==============================================
+# إعدادات diff للملفات المهمة
+# ==============================================
+
+# عرض تغييرات أفضل لملفات JSON
+*.json diff=json
+
+# عرض تغييرات أفضل لملفات package.json
+package.json diff=json
+package-lock.json diff=json
+
+# ==============================================
+# تعليمات مهمة
+# ==============================================
+# هذا الملف يحمي الملفات من:
+# 1. تغيير نهايات الأسطر
+# 2. تلف الترميز
+# 3. تغيير المحتوى عن طريق الخطأ
+# 4. مشاكل النقل بين أنظمة التشغيل المختلفة
