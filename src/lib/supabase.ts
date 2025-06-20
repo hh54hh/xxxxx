@@ -131,16 +131,24 @@ export const dbHelpers = {
           .eq("subscriber_id", id);
 
         if (groupsError) {
-          console.warn("⚠️ تحذير في جلب المجموعات:", groupsError.message);
+          const errorMessage = getErrorMessage(groupsError);
+          console.warn("⚠️ تحذير في جلب المجموعات:", errorMessage);
           // إذا كان الخطأ بسبب عدم وجود الجداول، نتجاهله ونكمل
-          if (groupsError.message.includes("does not exist")) {
+          if (errorMessage.includes("does not exist")) {
             console.warn(
-              "⚠️ جدول المجموعات غير موجود - يرجى تشغيل سكريبت check-groups-tables.sql",
+              "⚠️ جدول المجموعات غير موجود - يرجى تشغيل سكريبت fix-groups-problem.sql",
             );
             groups = [];
           } else {
+            console.error("تفاصيل خطأ المجموعات:", {
+              message: errorMessage,
+              code: groupsError?.code,
+              details: groupsError?.details,
+              hint: groupsError?.hint
+            });
             throw groupsError;
           }
+        }
         } else {
           groups = groupsData || [];
           console.log(`✅ تم جلب ${groups.length} مجموعة`);
@@ -163,7 +171,7 @@ export const dbHelpers = {
           message: errorMessage,
           code: groupsError?.code,
           details: groupsError?.details,
-          hint: groupsError?.hint,
+          hint: groupsError?.hint
         });
         groups = [];
       }
@@ -912,7 +920,7 @@ export const dbHelpers = {
     dietGroups: Array<{ title?: string; selectedItems: string[] }>;
   }): Promise<SupabaseResponse<any>> {
     try {
-      console.log("📝 إنشاء مشترك مع المجموعات:", data.subscriber.name);
+      console.log("📝 إنشاء مشت��ك مع المجموعات:", data.subscriber.name);
       console.log("📋 مجموعات الكورسات:", data.courseGroups);
       console.log("📋 مجموعات الأنظمة الغذائية:", data.dietGroups);
 
@@ -1014,7 +1022,7 @@ export const dbHelpers = {
 
             if (itemsResponse.error) {
               console.error(
-                "❌ خطأ في إنشاء عناصر مجموعة الأنظمة الغذائ��ة:",
+                "❌ خطأ في إنشاء عناصر مجموعة الأنظمة الغذائية:",
                 itemsResponse.error,
               );
               throw itemsResponse.error;
