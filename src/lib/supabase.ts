@@ -156,8 +156,15 @@ export const dbHelpers = {
           });
         }
       } catch (groupsError: any) {
-        console.error("❌ خطأ في جلب المجموعات:", groupsError);
+        const errorMessage = getErrorMessage(groupsError);
+        console.error("❌ خطأ في جلب المجموعات:", errorMessage);
         console.warn("⚠️ سيتم استخدام قائمة فارغة للمجموعات");
+        console.error("تفاصيل الخطأ:", {
+          message: errorMessage,
+          code: groupsError?.code,
+          details: groupsError?.details,
+          hint: groupsError?.hint,
+        });
         groups = [];
       }
 
@@ -1007,7 +1014,7 @@ export const dbHelpers = {
 
             if (itemsResponse.error) {
               console.error(
-                "❌ خطأ في إنشاء عناصر مجموعة الأنظمة الغذائية:",
+                "❌ خطأ في إنشاء عناصر مجموعة الأنظمة الغذائ��ة:",
                 itemsResponse.error,
               );
               throw itemsResponse.error;
