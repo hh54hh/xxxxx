@@ -382,10 +382,10 @@ export const dbHelpers = {
         console.warn("⚠️ خطأ في فحص المبيعات:", salesCheckError.message);
       }
 
-      // إذا كان هناك مبيعات مرتبطة، نقوم بتحديث subscriber_id إلى null
+      // إذا كان هناك مبيعات م��تبطة، نقوم بتحديث subscriber_id إلى null
       if (relatedSales && relatedSales.length > 0) {
         console.log(
-          `📋 تم العثور على ${relatedSales.length} مبيعة مرتبطة، سيتم فصلها عن ال��شترك`,
+          `📋 تم العثور على ${relatedSales.length} مبيعة مرتبطة، سيتم فصلها عن المشترك`,
         );
 
         const { error: updateSalesError } = await supabase
@@ -465,7 +465,7 @@ export const dbHelpers = {
         throw handleDatabaseError("جلب نقاط التمرين", error);
       }
 
-      console.log(`✅ تم جلب ${data?.length || 0} نقطة تمر��ن`);
+      console.log(`✅ تم جلب ${data?.length || 0} نقطة تمرين`);
       return { data: data || [], error: null };
     } catch (error: any) {
       return {
@@ -712,7 +712,7 @@ export const dbHelpers = {
         throw handleDatabaseError("��نشاء منتج", error);
       }
 
-      console.log("✅ ت�� إنشاء المنتج بنجاح");
+      console.log("✅ تم إنشاء المنتج بنجاح");
       return { data: data || [], error: null };
     } catch (error: any) {
       return { data: null, error: handleDatabaseError("إنشاء منتج", error) };
@@ -811,7 +811,7 @@ export const dbHelpers = {
     formData: SaleFormData,
   ): Promise<SupabaseResponse<SaleWithItems[]>> {
     try {
-      console.log("📝 إنشاء مبيعة جديدة");
+      console.log("📝 إنشاء مبيعة ��ديدة");
 
       // حساب المجموع الكلي
       const totalAmount = formData.items.reduce(
@@ -1108,6 +1108,7 @@ export const dbHelpers = {
             const itemsResponse = await this.createGroupItems({
               group_id: groupId,
               item_ids: dietGroup.selectedItems,
+              type: "diet",
             });
 
             if (itemsResponse.error) {
@@ -1155,7 +1156,7 @@ export const dbHelpers = {
       if (error) {
         // إذا كان الخطأ بسبب عدم وجود الجدول، فالاتصال يعمل لكن الجداول غير موجودة
         if (error.message.includes("does not exist")) {
-          console.log("⚠️ الاتصال يعمل لكن جدول subscribers غير موجود");
+          console.log("⚠️ الاتصال يعمل لكن جدول subscribers غير مو��ود");
           return {
             data: false,
             error: new Error(
