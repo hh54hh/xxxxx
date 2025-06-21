@@ -19,7 +19,20 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Missing Supabase environment variables");
+  const missingVars = [];
+  if (!supabaseUrl) missingVars.push("VITE_SUPABASE_URL");
+  if (!supabaseAnonKey) missingVars.push("VITE_SUPABASE_ANON_KEY");
+
+  console.error("❌ متغيرات البيئة المفقودة:", missingVars);
+  console.error("💡 لإصلاح هذه المشكلة:");
+  console.error("1. اذهب إلى Netlify Dashboard");
+  console.error("2. Site settings → Environment variables");
+  console.error("3. أضف المتغيرات المفقودة");
+  console.error("4. أعد النشر");
+
+  throw new Error(
+    `❌ متغيرات البيئة مفقودة: ${missingVars.join(", ")}. راجع الكونسول للحل.`,
+  );
 }
 
 // إنشاء اتصال مع Supabase
@@ -110,7 +123,7 @@ export const dbHelpers = {
 
       console.log("✅ تم جلب بيانات المشترك:", subscriber.name);
 
-      // محاولة جلب المجموعات (مع معالجة حالة عدم وجود الجداول)
+      // محاولة جلب المجموعات (مع معالجة حالة ��دم وجود الجداول)
       let groups: any[] = [];
 
       try {
@@ -474,7 +487,7 @@ export const dbHelpers = {
     if (groupsDeleteError) {
       console.warn("⚠️ خطأ في حذف المجموعات:", groupsDeleteError.message);
     } else {
-      console.log("✅ تم حذف المجموعات المرتبطة");
+      console.log("✅ تم حذف المجموعات المرتبط��");
     }
 
     // حذف المشترك
@@ -1221,7 +1234,10 @@ export const dbHelpers = {
       console.warn(
         "⚠️ تحذير: عملية إعادة تعيين قاعدة البيانات غير مدعومة في الإنتاج",
       );
-      return { data: null, error: new Error("عملية إعادة التعيين غير مدعومة") };
+      return {
+        data: null,
+        error: new Error("عملية إ��ادة التعيين غير مدعومة"),
+      };
     } catch (error: any) {
       return {
         data: null,
