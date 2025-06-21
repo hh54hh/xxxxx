@@ -14,25 +14,35 @@ import type {
   SaleWithItems,
 } from "@/types";
 
-// الحصول على معلومات الاتصال من متغيرات البيئة
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// الحصول على معلومات الاتصال من متغيرات البيئة مع قيم افتراضية
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL ||
+  "https://nfccwjrneviidwljaeoq.supabase.co";
+const supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mY2N3anJuZXZpaWR3bGphZW9xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0Mzg0ODcsImV4cCI6MjA2NjAxNDQ4N30.X6ooPkivgB0gPB5OoMp_kodFX2kwGz8URqXT3FdFBeE";
 
-if (!supabaseUrl || !supabaseAnonKey) {
+// التحقق من صحة متغيرات البيئة مع إظهار إرشادات إضافية
+if (
+  !import.meta.env.VITE_SUPABASE_URL ||
+  !import.meta.env.VITE_SUPABASE_ANON_KEY
+) {
   const missingVars = [];
-  if (!supabaseUrl) missingVars.push("VITE_SUPABASE_URL");
-  if (!supabaseAnonKey) missingVars.push("VITE_SUPABASE_ANON_KEY");
+  if (!import.meta.env.VITE_SUPABASE_URL) missingVars.push("VITE_SUPABASE_URL");
+  if (!import.meta.env.VITE_SUPABASE_ANON_KEY)
+    missingVars.push("VITE_SUPABASE_ANON_KEY");
 
-  console.error("❌ متغيرات البيئة المفقودة:", missingVars);
-  console.error("💡 لإصلاح هذه المشكلة:");
-  console.error("1. اذهب إلى Netlify Dashboard");
-  console.error("2. Site settings → Environment variables");
-  console.error("3. أضف المتغيرات المفقودة");
-  console.error("4. أعد النشر");
-
-  throw new Error(
-    `❌ متغيرات البيئة مفقودة: ${missingVars.join(", ")}. راجع الكونسول للحل.`,
+  console.warn(
+    "⚠️ تم استخدام قيم افتراضية لمتغيرات البيئة المفقودة:",
+    missingVars,
   );
+  console.info("💡 للحصول على أداء أفضل وأمان أكبر:");
+  console.info("1. اذهب إلى Netlify Dashboard");
+  console.info("2. Site settings → Environment variables");
+  console.info("3. أضف المتغيرات المفقودة:");
+  console.info(`   VITE_SUPABASE_URL = ${supabaseUrl}`);
+  console.info(`   VITE_SUPABASE_ANON_KEY = ${supabaseAnonKey}`);
+  console.info("4. أعد النشر");
 }
 
 // إنشاء اتصال مع Supabase
@@ -487,7 +497,7 @@ export const dbHelpers = {
     if (groupsDeleteError) {
       console.warn("⚠️ خطأ في حذف المجموعات:", groupsDeleteError.message);
     } else {
-      console.log("✅ تم حذف المجموعات المرتبط��");
+      console.log("✅ تم حذف المجموعات المرتبطة");
     }
 
     // حذف المشترك
@@ -520,7 +530,7 @@ export const dbHelpers = {
     } catch (error: any) {
       return {
         data: null,
-        error: handleDatabaseError("جلب نقاط التمرين", error),
+        error: handleDatabaseError("ج��ب نقاط التمرين", error),
       };
     }
   },
@@ -1234,10 +1244,7 @@ export const dbHelpers = {
       console.warn(
         "⚠️ تحذير: عملية إعادة تعيين قاعدة البيانات غير مدعومة في الإنتاج",
       );
-      return {
-        data: null,
-        error: new Error("عملية إ��ادة التعيين غير مدعومة"),
-      };
+      return { data: null, error: new Error("عملية إعادة التعيين غير مدعومة") };
     } catch (error: any) {
       return {
         data: null,
