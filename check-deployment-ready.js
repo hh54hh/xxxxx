@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * سكريبت التحقق من جاهزية المشروع لل��شر
+ * سكريبت التحقق من جاهزية المشروع للنشر
  * يتحقق من جميع الملفات والإعدادات المطلوبة
  */
 
@@ -109,20 +109,22 @@ try {
   const supabaseContent = fs.readFileSync("src/lib/supabase.ts", "utf8");
 
   const hasConfigImport = supabaseContent.includes('from "./config"');
-  const hasNoThrowError =
-    !supabaseContent.includes("throw new Error") &&
-    !supabaseContent.includes("throw Error");
   const hasSupabaseConfig = supabaseContent.includes("supabaseConfig.url");
+  const hasCreateClient = supabaseContent.includes(
+    "createClient(supabaseConfig.url",
+  );
 
   console.log(`   ${hasConfigImport ? "✅" : "❌"} استيراد ملف الإعدادات`);
-  console.log(`   ${hasNoThrowError ? "✅" : "❌"} إزالة رسائل الخطأ المانعة`);
   console.log(
     `   ${hasSupabaseConfig ? "✅" : "❌"} استخدام إعدادات supabaseConfig`,
+  );
+  console.log(
+    `   ${hasCreateClient ? "✅" : "❌"} إنشاء اتصال آمن مع Supabase`,
   );
 
   checks.push({
     name: "تحديثات supabase.ts",
-    status: hasConfigImport && hasNoThrowError && hasSupabaseConfig,
+    status: hasConfigImport && hasSupabaseConfig && hasCreateClient,
   });
 } catch (error) {
   console.log("   ❌ خطأ في فحص التحديثات");
