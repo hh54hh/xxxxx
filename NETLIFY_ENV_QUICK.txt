@@ -1,0 +1,21 @@
+🔧 إصلاح سريع لمتغيرات البيئة على Netlify
+
+الخطأ: Missing Supabase environment variables
+
+الحل:
+1. اذهب إلى app.netlify.com
+2. اختر موقع��
+3. Site settings → Environment variables
+4. أضف هذين المتغيرين:
+
+VITE_SUPABASE_URL
+https://nfccwjrneviidwljaeoq.supabase.co
+
+VITE_SUPABASE_ANON_KEY
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mY2N3anJuZXZpaWR3bGphZW9xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0Mzg0ODcsImV4cCI6MjA2NjAxNDQ4N30.X6ooPkivgB0gPB5OoMp_kodFX2kwGz8URqXT3FdFBeE
+
+5. احفظ
+6. Deploys → Trigger deploy
+7. انتظر انتهاء النشر
+
+النتيجة: الموقع يعمل بدون أخطاء! ✅
