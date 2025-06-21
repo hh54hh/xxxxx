@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { supabaseConfig } from "./config";
 import type {
   Subscriber,
   SubscriberFormData,
@@ -14,29 +15,11 @@ import type {
   SaleWithItems,
 } from "@/types";
 
-// الحصول على معلومات الاتصال من متغيرات البيئة
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  const missingVars = [];
-  if (!supabaseUrl) missingVars.push("VITE_SUPABASE_URL");
-  if (!supabaseAnonKey) missingVars.push("VITE_SUPABASE_ANON_KEY");
-
-  console.error("❌ متغيرات البيئة المفقودة:", missingVars);
-  console.error("💡 لإصلاح هذه المشكلة:");
-  console.error("1. اذهب إلى Netlify Dashboard");
-  console.error("2. Site settings → Environment variables");
-  console.error("3. أضف المتغيرات المفقودة");
-  console.error("4. أعد النشر");
-
-  throw new Error(
-    `❌ متغيرات البيئة مفقودة: ${missingVars.join(", ")}. راجع الكونسول للحل.`,
-  );
-}
-
-// إنشاء اتصال مع Supabase
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// إنشاء اتصال آمن مع Supabase باستخدام الإعدادات المحدثة
+export const supabase = createClient(
+  supabaseConfig.url,
+  supabaseConfig.anonKey,
+);
 
 // نوع الاستجابة من Supabase
 interface SupabaseResponse<T> {
@@ -487,7 +470,7 @@ export const dbHelpers = {
     if (groupsDeleteError) {
       console.warn("⚠️ خطأ في حذف المجموعات:", groupsDeleteError.message);
     } else {
-      console.log("✅ تم حذف المجموعات المرتبط��");
+      console.log("✅ تم حذف المجموعات المرتبطة");
     }
 
     // حذف المشترك
@@ -1210,7 +1193,7 @@ export const dbHelpers = {
           return {
             data: false,
             error: new Error(
-              "الاتصال يعمل لكن الجداول غير موجودة. يرجى تشغيل سكريبت إنشاء الجداول.",
+              "الاتصال يعمل لكن الجداول غير موجودة. يرجى تشغيل سكري��ت إنشاء الجداول.",
             ),
           };
         }
@@ -1234,10 +1217,7 @@ export const dbHelpers = {
       console.warn(
         "⚠️ تحذير: عملية إعادة تعيين قاعدة البيانات غير مدعومة في الإنتاج",
       );
-      return {
-        data: null,
-        error: new Error("عملية إ��ادة التعيين غير مدعومة"),
-      };
+      return { data: null, error: new Error("عملية إعادة التعيين غير مدعومة") };
     } catch (error: any) {
       return {
         data: null,
