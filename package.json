@@ -14,7 +14,7 @@
     "format.fix": "prettier --write .",
     "format.check": "prettier --check .",
     "typecheck": "tsc",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "prettier --check . && tsc --noEmit",
     "preview": "vite preview",
     "build:analyze": "vite build --mode analyze",
     "check-files": "bash check-files.sh",

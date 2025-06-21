@@ -1,44 +1,8 @@
 [build]
-  # مجلد البناء
   publish = "dist"
-
-  # أمر البناء
   command = "npm run build"
 
-[build.environment]
-  # إصدار Node.js
-  NODE_VERSION = "20"
-
-  # متغيرات البيئة للبناء
-  VITE_APP_NAME = "نظام إدارة صالة حسام جم"
-
-# إعادة توجيه لتطبيقات SPA (Single Page Application)
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
-# إعدادات الأداء
-[[headers]]
-  for = "/assets/*"
-  [headers.values]
-    Cache-Control = "max-age=31536000"
-
-[[headers]]
-  for = "*.js"
-  [headers.values]
-    Cache-Control = "max-age=31536000"
-
-[[headers]]
-  for = "*.css"
-  [headers.values]
-    Cache-Control = "max-age=31536000"
-
-# إعدادات الأمان
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-XSS-Protection = "1; mode=block"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"

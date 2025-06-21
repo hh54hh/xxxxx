@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ErrorBoundary } from "react-error-boundary";
 
 // Import pages
+import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import SubscriberDetail from "./pages/SubscriberDetail";
@@ -67,8 +68,11 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Home page */}
+          <Route path="/" element={<Index />} />
+
           {/* Login page */}
-          <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
 
           {/* Main app routes */}
           <Route path="/dashboard" element={<Dashboard />} />
