@@ -1,2 +1,3 @@
 # Netlify redirects for SPA routing
+# تطبيق أحادي الصفحة (SPA) - جميع المسارات توجه لـ index.html
 /*    /index.html   200
