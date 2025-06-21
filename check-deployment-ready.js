@@ -2,7 +2,7 @@
 
 /**
  * سكريبت التحقق من جاهزية المشروع للنشر
- * يتحقق من جميع الملفات والإعدادات المطلوبة
+ * يتحقق من جميع الملفات والإع��ادات المطلوبة
  */
 
 import fs from "fs";
@@ -111,7 +111,7 @@ try {
   const hasConfigImport = supabaseContent.includes('from "./config"');
   const hasSupabaseConfig = supabaseContent.includes("supabaseConfig.url");
   const hasCreateClient = supabaseContent.includes(
-    "createClient(supabaseConfig.url",
+    "createClient(supabaseConfig.url, supabaseConfig.anonKey)",
   );
 
   console.log(`   ${hasConfigImport ? "✅" : "❌"} استيراد ملف الإعدادات`);
