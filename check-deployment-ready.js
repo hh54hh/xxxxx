@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * سكريبت التحقق من جاهزية المشروع للنشر
+ * سكريبت التحقق من جاهزية المشروع لل��شر
  * يتحقق من جميع الملفات والإعدادات المطلوبة
  */
 
@@ -109,7 +109,9 @@ try {
   const supabaseContent = fs.readFileSync("src/lib/supabase.ts", "utf8");
 
   const hasConfigImport = supabaseContent.includes('from "./config"');
-  const hasNoThrowError = !supabaseContent.includes("throw new Error(");
+  const hasNoThrowError =
+    !supabaseContent.includes("throw new Error") &&
+    !supabaseContent.includes("throw Error");
   const hasSupabaseConfig = supabaseContent.includes("supabaseConfig.url");
 
   console.log(`   ${hasConfigImport ? "✅" : "❌"} استيراد ملف الإعدادات`);
