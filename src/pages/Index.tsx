@@ -1,32 +1,33 @@
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+
 const Index = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
-      <div className="text-center">
-        {/* TODO: replace everything here with the actual app! */}
-        <h1 className="text-2xl font-semibold text-slate-800 flex items-center justify-center gap-3">
-          <svg
-            className="animate-spin h-8 w-8 text-slate-400"
-            viewBox="0 0 50 50"
+      <div className="text-center max-w-md mx-auto p-6">
+        <h1 className="text-3xl font-bold text-slate-800 mb-4">
+          نظام إدارة صالة حسام جم
+        </h1>
+        <p className="text-slate-600 mb-8">
+          نظام شامل لإدارة المشتركين والكورسات والمبيعات
+        </p>
+        <div className="space-y-4">
+          <Button
+            onClick={() => navigate("/dashboard")}
+            className="w-full"
+            size="lg"
           >
-            <circle
-              className="opacity-30"
-              cx="25"
-              cy="25"
-              r="20"
-              stroke="currentColor"
-              strokeWidth="5"
-              fill="none"
-            />
-            <circle
-              className="text-slate-600"
-              cx="25"
-              cy="25"
-              r="20"
-              stroke="currentColor"
-              strokeWidth="5"
-              fill="none"
-              strokeDasharray="100"
-              strokeDashoffset="75"
+            الدخول إلى النظام
+          </Button>
+          <Button
+            onClick={() => navigate("/login")}
+            variant="outline"
+            className="w-full"
+            size="lg"
+          >
+            تسجيل الدخول
             />
           </svg>
           Generating your app...
