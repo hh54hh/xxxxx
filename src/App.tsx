@@ -17,8 +17,18 @@ import Sales from "./pages/Sales";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
+import EnvironmentError from "./components/EnvironmentError";
+
 // مكون للتعامل مع الأخطاء
 function ErrorFallback({ error }: { error: Error }) {
+  // إذا كان الخطأ متعلق بمتغيرات البيئة، اعرض مكون خاص
+  if (
+    error.message.includes("متغيرات البيئة") ||
+    error.message.includes("environment variables")
+  ) {
+    return <EnvironmentError />;
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6 text-center">
