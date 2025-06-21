@@ -28,14 +28,8 @@ const Index = () => {
             size="lg"
           >
             تسجيل الدخول
-            />
-          </svg>
-          Generating your app...
-        </h1>
-        <p className="mt-4 text-slate-600 max-w-md">
-          Watch the chat on the left for updates that might need your attention
-          to finish generating
-        </p>
+          </Button>
+        </div>
       </div>
     </div>
   );
