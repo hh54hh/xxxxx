@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { supabaseConfig } from "./config";
 import type {
   Subscriber,
   SubscriberFormData,
@@ -14,39 +15,11 @@ import type {
   SaleWithItems,
 } from "@/types";
 
-// الحصول على معلومات الاتصال من متغيرات البيئة مع قيم افتراضية
-const supabaseUrl =
-  import.meta.env.VITE_SUPABASE_URL ||
-  "https://nfccwjrneviidwljaeoq.supabase.co";
-const supabaseAnonKey =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mY2N3anJuZXZpaWR3bGphZW9xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0Mzg0ODcsImV4cCI6MjA2NjAxNDQ4N30.X6ooPkivgB0gPB5OoMp_kodFX2kwGz8URqXT3FdFBeE";
-
-// التحقق من صحة متغيرات البيئة مع إظهار إرشادات إضافية
-if (
-  !import.meta.env.VITE_SUPABASE_URL ||
-  !import.meta.env.VITE_SUPABASE_ANON_KEY
-) {
-  const missingVars = [];
-  if (!import.meta.env.VITE_SUPABASE_URL) missingVars.push("VITE_SUPABASE_URL");
-  if (!import.meta.env.VITE_SUPABASE_ANON_KEY)
-    missingVars.push("VITE_SUPABASE_ANON_KEY");
-
-  console.warn(
-    "⚠️ تم استخدام قيم افتراضية لمتغيرات البيئة المفقودة:",
-    missingVars,
-  );
-  console.info("💡 للحصول على أداء أفضل وأمان أكبر:");
-  console.info("1. اذهب إلى Netlify Dashboard");
-  console.info("2. Site settings → Environment variables");
-  console.info("3. أضف المتغيرات المفقودة:");
-  console.info(`   VITE_SUPABASE_URL = ${supabaseUrl}`);
-  console.info(`   VITE_SUPABASE_ANON_KEY = ${supabaseAnonKey}`);
-  console.info("4. أعد النشر");
-}
-
-// إنشاء اتصال مع Supabase
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// إنشاء اتصال آمن مع Supabase باستخدام الإعدادات المحدثة
+export const supabase = createClient(
+  supabaseConfig.url,
+  supabaseConfig.anonKey,
+);
 
 // نوع الاستجابة من Supabase
 interface SupabaseResponse<T> {
@@ -530,7 +503,7 @@ export const dbHelpers = {
     } catch (error: any) {
       return {
         data: null,
-        error: handleDatabaseError("ج��ب نقاط التمرين", error),
+        error: handleDatabaseError("جلب نقاط التمرين", error),
       };
     }
   },
@@ -1220,7 +1193,7 @@ export const dbHelpers = {
           return {
             data: false,
             error: new Error(
-              "الاتصال يعمل لكن الجداول غير موجودة. يرجى تشغيل سكريبت إنشاء الجداول.",
+              "الاتصال يعمل لكن الجداول غير موجودة. يرجى تشغيل سكري��ت إنشاء الجداول.",
             ),
           };
         }
