@@ -45,7 +45,7 @@ export default function DietPrograms({ groups }: DietProgramsProps) {
                   {group.title || `نظام غذائي ${groupIndex + 1}`}
                 </h3>
                 <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                  {group.items?.length || 0} عنصر غذائي
+                  {group.group_items?.length || 0} عنصر غذائي
                 </p>
               </div>
               <Badge
@@ -58,11 +58,14 @@ export default function DietPrograms({ groups }: DietProgramsProps) {
           </CardHeader>
 
           <CardContent className="p-6">
-            {group.items && group.items.length > 0 ? (
+            {group.group_items && group.group_items.length > 0 ? (
               <div className="space-y-4">
-                {group.items.map((item, itemIndex) => {
+                {group.group_items.map((item, itemIndex) => {
                   const dietItem = item.diet_item;
-                  if (!dietItem) return null;
+                  if (!dietItem) {
+                    console.warn("عنصر بدون تفاصيل نظام غذائي:", item);
+                    return null;
+                  }
 
                   return (
                     <div key={item.id} className="group">
@@ -104,7 +107,7 @@ export default function DietPrograms({ groups }: DietProgramsProps) {
                       </div>
 
                       {/* فاصل بين العناصر */}
-                      {itemIndex < group.items!.length - 1 && (
+                      {itemIndex < group.group_items!.length - 1 && (
                         <Separator className="my-3" />
                       )}
                     </div>

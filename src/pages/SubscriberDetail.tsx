@@ -79,6 +79,23 @@ export default function SubscriberDetail() {
         throw new Error("لم يتم العثور على المشترك");
       }
 
+      // معلومات تصحيح للتأكد من البيانات
+      console.log("📊 بيانات المشترك المستلمة:", {
+        name: response.data.name,
+        groups_count: response.data.groups?.length || 0,
+        groups_details: response.data.groups?.map((g) => ({
+          type: g.type,
+          title: g.title,
+          items_count: g.group_items?.length || 0,
+          first_item: g.group_items?.[0]
+            ? {
+                course_point: g.group_items[0].course_point?.name,
+                diet_item: g.group_items[0].diet_item?.name,
+              }
+            : null,
+        })),
+      });
+
       setSubscriber(response.data);
     } catch (error: any) {
       console.error("خطأ في تحميل بيانات المشترك:", error);
@@ -159,7 +176,7 @@ export default function SubscriberDetail() {
           <div className="text-center space-y-4">
             <Loader2 className="h-8 w-8 animate-spin mx-auto" />
             <p className="text-muted-foreground">
-              جاري تحميل بيانات المشترك...
+              ��اري تحميل بيانات المشترك...
             </p>
           </div>
         </div>

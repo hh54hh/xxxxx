@@ -45,7 +45,7 @@ export default function CoursePrograms({ groups }: CourseProgramsProps) {
                   {group.title || `برنامج التمرين ${groupIndex + 1}`}
                 </h3>
                 <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                  {group.items?.length || 0} تمرين
+                  {group.group_items?.length || 0} تمرين
                 </p>
               </div>
               <Badge variant="secondary" className="bg-blue-100 text-blue-800">
@@ -55,11 +55,14 @@ export default function CoursePrograms({ groups }: CourseProgramsProps) {
           </CardHeader>
 
           <CardContent className="p-6">
-            {group.items && group.items.length > 0 ? (
+            {group.group_items && group.group_items.length > 0 ? (
               <div className="space-y-4">
-                {group.items.map((item, itemIndex) => {
+                {group.group_items.map((item, itemIndex) => {
                   const exercise = item.course_point;
-                  if (!exercise) return null;
+                  if (!exercise) {
+                    console.warn("عنصر بدون تفاصيل تمرين:", item);
+                    return null;
+                  }
 
                   return (
                     <div key={item.id} className="group">
@@ -101,7 +104,7 @@ export default function CoursePrograms({ groups }: CourseProgramsProps) {
                       </div>
 
                       {/* فاصل بين التمارين */}
-                      {itemIndex < group.items!.length - 1 && (
+                      {itemIndex < group.group_items!.length - 1 && (
                         <Separator className="my-3" />
                       )}
                     </div>

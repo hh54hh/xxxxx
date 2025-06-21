@@ -116,48 +116,123 @@ export const dbHelpers = {
       try {
         console.log("🔍 جلب المجموعات للمشترك:", id);
 
+        // جلب المجموعات أولاً
         const { data: groupsData, error: groupsError } = await supabase
           .from("groups")
-          .select(
-            `
-            *,
-            group_items (
-              *,
-              course_points (*),
-              diet_items (*)
-            )
-          `,
-          )
+          .select("*")
           .eq("subscriber_id", id);
 
         if (groupsError) {
-          console.warn("⚠️ تحذير في جلب المجموعات:", groupsError.message);
-          // إذا كان الخطأ بسبب عدم وجود الجداول، نتجاهله ونكمل
-          if (groupsError.message.includes("does not exist")) {
-            console.warn(
-              "⚠️ جدول المجموعات غير موجود - يرجى تشغيل سكريبت check-groups-tables.sql",
-            );
-            groups = [];
-          } else {
-            throw groupsError;
-          }
-        } else {
-          groups = groupsData || [];
-          console.log(`✅ تم جلب ${groups.length} مجموعة`);
-
-          // تفاصيل المجموعات
-          groups.forEach((group, index) => {
-            console.log(`📋 مجموعة ${index + 1}:`, {
-              id: group.id,
-              type: group.type,
-              title: group.title,
-              items: group.group_items?.length || 0,
-            });
-          });
+          throw groupsError;
         }
+
+        console.log(`📊 تم العثور على ${groupsData?.length || 0} مجموعة`);
+
+        // جلب عناصر كل مجموعة مع تفاصيلها
+        const groupsWithItems = await Promise.all(
+          (groupsData || []).map(async (group) => {
+            console.log(`🔍 جلب عناصر المجموعة ${group.type}:`, group.title);
+            let items: any[] = [];
+
+            if (group.type === "course") {
+              // جلب العناصر التدريبية
+              const { data: courseItems, error: courseError } = await supabase
+                .from("group_course_items")
+                .select(
+                  `
+                  *,
+                  course_points (*)
+                `,
+                )
+                .eq("group_id", group.id);
+
+              if (courseError) {
+                console.error("خطأ في جلب العناصر التدريبية:", courseError);
+              } else {
+                console.log(
+                  `📋 تم جلب ${courseItems?.length || 0} عنصر تدريبي`,
+                );
+                items = (courseItems || []).map((item) => ({
+                  id: item.id,
+                  group_id: item.group_id,
+                  item_id: item.course_point_id,
+                  created_at: item.created_at,
+                  course_point: item.course_points,
+                  diet_item: null,
+                }));
+              }
+            } else if (group.type === "diet") {
+              // جلب العناصر الغذائية
+              const { data: dietItems, error: dietError } = await supabase
+                .from("group_diet_items")
+                .select(
+                  `
+                  *,
+                  diet_items (*)
+                `,
+                )
+                .eq("group_id", group.id);
+
+              if (dietError) {
+                console.error("خطأ في جلب العناصر الغذائية:", dietError);
+              } else {
+                console.log(`🥗 تم جلب ${dietItems?.length || 0} عنصر غذائي`);
+                items = (dietItems || []).map((item) => ({
+                  id: item.id,
+                  group_id: item.group_id,
+                  item_id: item.diet_item_id,
+                  created_at: item.created_at,
+                  course_point: null,
+                  diet_item: item.diet_items,
+                }));
+              }
+            }
+
+            console.log(
+              `✅ مجموعة ${group.title} تحتوي على ${items.length} عنصر`,
+            );
+            return {
+              ...group,
+              group_items: items,
+            };
+          }),
+        );
+
+        groups = groupsWithItems;
+        console.log(`✅ تم جلب ${groups.length} مجموعة مع عناصرها`);
+
+        // تسجيل تفصيلي لهيكل البيانات
+        groups.forEach((group, index) => {
+          console.log(`📋 مجموعة ${index + 1}:`, {
+            id: group.id,
+            type: group.type,
+            title: group.title,
+            items_count: group.group_items?.length || 0,
+            first_item: group.group_items?.[0]
+              ? {
+                  course_point_name: group.group_items[0].course_point?.name,
+                  diet_item_name: group.group_items[0].diet_item?.name,
+                }
+              : null,
+          });
+        });
       } catch (groupsError: any) {
-        console.error("❌ خطأ في جلب المجموعات:", groupsError);
+        const errorMessage = getErrorMessage(groupsError);
+        console.error("❌ خطأ في جلب المجموعات:", errorMessage);
         console.warn("⚠️ سيتم استخدام قائمة فارغة للمجموعات");
+        console.error(
+          "تفاصيل الخطأ:",
+          JSON.stringify(
+            {
+              message: errorMessage,
+              code: groupsError?.code,
+              details: groupsError?.details,
+              hint: groupsError?.hint,
+            },
+            null,
+            2,
+          ),
+        );
         groups = [];
       }
 
@@ -292,7 +367,20 @@ export const dbHelpers = {
     try {
       console.log("🗑️ التحقق من إمكانية حذف المشترك:", id);
 
-      // أولاً، تحقق من وجود مبيعات مرتبطة بالمشترك
+      // أولاً، جلب بيانات المشترك للحصول على الاسم
+      const { data: subscriber, error: subscriberError } = await supabase
+        .from("subscribers")
+        .select("name")
+        .eq("id", id)
+        .single();
+
+      if (subscriberError) {
+        console.warn("⚠️ خطأ في جلب بيانات المشترك:", subscriberError.message);
+      }
+
+      const subscriberName = subscriber?.name || "مشترك سابق";
+
+      // تحقق من وجود مبيعات مرتبطة بالمشترك
       const { data: relatedSales, error: salesCheckError } = await supabase
         .from("sales")
         .select("id")
@@ -302,7 +390,7 @@ export const dbHelpers = {
         console.warn("⚠️ خطأ في فحص المبيعات:", salesCheckError.message);
       }
 
-      // إذا كان هناك مبيعات مرتبطة، نقوم بتحديث subscriber_id إلى null
+      // إذا كان هناك مبيعات مرتبطة، نقوم بتحديث subscriber_id إلى null وإضافة اسم المشترك
       if (relatedSales && relatedSales.length > 0) {
         console.log(
           `📋 تم العثور على ${relatedSales.length} مبيعة مرتبطة، سيتم فصلها عن المشترك`,
@@ -310,45 +398,46 @@ export const dbHelpers = {
 
         const { error: updateSalesError } = await supabase
           .from("sales")
-          .update({ subscriber_id: null })
+          .update({
+            subscriber_id: null,
+            customer_name: subscriberName,
+          })
           .eq("subscriber_id", id);
 
         if (updateSalesError) {
           console.warn("⚠️ خطأ في تحديث المبيعات:", updateSalesError.message);
+          // إذا فشل التحديث، لا نتابع مع الحذف
+          throw updateSalesError;
         } else {
-          console.log("✅ تم فصل ال��بيعات عن المشترك");
+          console.log("✅ تم فصل المبيعات عن المشترك وتحديث اسم الزبون");
         }
       }
 
-      // الآن حذف المجموعات المرتبطة (groups و group_items)
-      const { error: groupsDeleteError } = await supabase
-        .from("groups")
-        .delete()
-        .eq("subscriber_id", id);
+      // استخدام الدالة الآمنة لحذف المشترك (إذا كانت متاحة)
+      try {
+        const { error: safeDeleteError } = await supabase.rpc(
+          "safe_delete_subscriber",
+          { subscriber_id_param: id },
+        );
 
-      if (groupsDeleteError) {
-        console.warn("⚠️ خطأ في حذف المجموعات:", groupsDeleteError.message);
-      } else {
-        console.log("✅ تم حذف المجموعات المرتبطة");
-      }
-
-      // أخيراً، حذف المشترك
-      const { error } = await supabase
-        .from("subscribers")
-        .delete()
-        .eq("id", id);
-
-      if (error) {
-        // إذا كان الخطأ بسبب foreign key constraint، نعطي رسالة واضحة
-        if (error.message.includes("foreign key constraint")) {
-          throw new Error(
-            "لا يمكن حذف المشترك لأنه مرتبط ببيانات أخرى. يرجى المحاولة مرة أخرى أو الاتصال بالدعم الفني.",
+        if (safeDeleteError) {
+          console.warn(
+            "⚠️ الدالة الآمنة غير متاحة، استخدام الطريقة العادية:",
+            safeDeleteError.message,
           );
+
+          // استخدام الطريقة العادية كبديل
+          await this.deleteSubscriberManually(id, subscriberName);
+        } else {
+          console.log("✅ تم حذف المشترك بنجاح باستخدام الدالة الآمنة");
         }
-        throw handleDatabaseError("حذف المشترك", error);
+      } catch (rpcError: any) {
+        console.warn(
+          "⚠️ فشل في استخدام الدالة الآمنة، استخدام الطريقة العادية",
+        );
+        await this.deleteSubscriberManually(id, subscriberName);
       }
 
-      console.log("✅ تم حذف المشترك بنجاح");
       return { data: null, error: null };
     } catch (error: any) {
       console.error("❌ فشل في حذف المشترك:", error);
@@ -356,18 +445,46 @@ export const dbHelpers = {
       // تحسين رسالة الخطأ للمستخدم
       if (
         error.message.includes("foreign key constraint") ||
-        error.message.includes("violates")
+        error.message.includes("violates") ||
+        error.message.includes("check constraint")
       ) {
         return {
           data: null,
           error: new Error(
-            "لا يمكن حذف المشترك لأنه مرتبط بمبيعات أو بيانات أخرى. تم تحديث قاعدة البيانات، يرجى المحاولة مرة أخرى.",
+            "لا يمكن حذف المشترك لأنه مرتبط بمبيعات أو بيانات أخرى. يرجى تشغيل سكريپت fix-sales-constraint.sql أولاً.",
           ),
         };
       }
 
       return { data: null, error: handleDatabaseError("حذف المشترك", error) };
     }
+  },
+
+  // دالة مساعدة لحذف المشترك يدوياً
+  async deleteSubscriberManually(
+    id: string,
+    subscriberName: string,
+  ): Promise<void> {
+    // حذف المجموعات المرتبطة
+    const { error: groupsDeleteError } = await supabase
+      .from("groups")
+      .delete()
+      .eq("subscriber_id", id);
+
+    if (groupsDeleteError) {
+      console.warn("⚠️ خطأ في حذف المجموعات:", groupsDeleteError.message);
+    } else {
+      console.log("✅ تم حذف المجموعات المرتبطة");
+    }
+
+    // حذف المشترك
+    const { error } = await supabase.from("subscribers").delete().eq("id", id);
+
+    if (error) {
+      throw handleDatabaseError("حذف المشترك", error);
+    }
+
+    console.log("✅ تم حذف المشترك بنجاح:", subscriberName);
   },
 
   // ==================== العمليات على نقاط التمرين ====================
@@ -870,23 +987,47 @@ export const dbHelpers = {
   async createGroupItems(data: {
     group_id: string;
     item_ids: string[];
+    type: "course" | "diet";
   }): Promise<SupabaseResponse<any[]>> {
     try {
-      console.log("📝 إنشاء عناصر المجموعة:", data.item_ids.length);
+      console.log("📝 إنشاء عناصر المجموعة:", data.type, data.item_ids.length);
 
-      const groupItems = data.item_ids.map((item_id) => ({
-        group_id: data.group_id,
-        item_id,
-        created_at: new Date().toISOString(),
-      }));
+      let result: any[] = [];
 
-      const { data: result, error } = await supabase
-        .from("group_items")
-        .insert(groupItems)
-        .select();
+      if (data.type === "course") {
+        // إدراج في جدول المجموعات التدريبية
+        const courseItems = data.item_ids.map((course_point_id) => ({
+          group_id: data.group_id,
+          course_point_id,
+          created_at: new Date().toISOString(),
+        }));
 
-      if (error) {
-        throw handleDatabaseError("إنشاء عناصر المجموعة", error);
+        const { data: courseResult, error: courseError } = await supabase
+          .from("group_course_items")
+          .insert(courseItems)
+          .select();
+
+        if (courseError) {
+          throw handleDatabaseError("إنشاء عناصر مجموعة التدريب", courseError);
+        }
+        result = courseResult || [];
+      } else if (data.type === "diet") {
+        // إدراج في جدول المجموعات الغذائية
+        const dietItems = data.item_ids.map((diet_item_id) => ({
+          group_id: data.group_id,
+          diet_item_id,
+          created_at: new Date().toISOString(),
+        }));
+
+        const { data: dietResult, error: dietError } = await supabase
+          .from("group_diet_items")
+          .insert(dietItems)
+          .select();
+
+        if (dietError) {
+          throw handleDatabaseError("إنشاء عناصر مجموعة الغذاء", dietError);
+        }
+        result = dietResult || [];
       }
 
       console.log("✅ تم إنشاء عناصر المجموعة بنجاح");
@@ -951,6 +1092,7 @@ export const dbHelpers = {
             const itemsResponse = await this.createGroupItems({
               group_id: groupId,
               item_ids: courseGroup.selectedCourses,
+              type: "course",
             });
 
             if (itemsResponse.error) {
@@ -1003,6 +1145,7 @@ export const dbHelpers = {
             const itemsResponse = await this.createGroupItems({
               group_id: groupId,
               item_ids: dietGroup.selectedItems,
+              type: "diet",
             });
 
             if (itemsResponse.error) {

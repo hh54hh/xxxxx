@@ -1,0 +1,101 @@
+name: 🛡️ فحص الأمان والجودة
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  safety-check:
+    name: فحص الأمان
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 استنساخ الكود
+        uses: actions/checkout@v4
+
+      - name: 🔧 إعداد Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: 📦 تثبيت التبعيات
+        run: npm ci
+
+      - name: 🔍 فحص الأمان
+        run: npm audit --audit-level moderate
+
+      - name: 🔧 فحص TypeScript
+        run: npm run typecheck
+
+      - name: 🧪 تشغيل الاختبارات
+        run: npm test
+
+      - name: 🏗️ اختبار البناء
+        run: npm run build
+
+      - name: 📝 فحص التنسيق
+        run: |
+          if command -v prettier &> /dev/null; then
+            npx prettier --check .
+          else
+            echo "Prettier غير مثبت، تم تخطي فحص التنسيق"
+          fi
+
+      - name: 🔒 فحص ملفات الأمان
+        run: |
+          echo "فحص ملفات الأمان..."
+
+          # فحص وجود .env في Git
+          if git ls-files | grep -q "^\.env$"; then
+            echo "❌ خطأ: ملف .env موجود في Git"
+            exit 1
+          fi
+
+          # فحص وجود كلمات مرور
+          if grep -r -i "password.*=" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" src/; then
+            echo "⚠️ تحذير: تم العثور على كلمات مرور محتملة"
+          fi
+
+          # فحص وجود API keys
+          if grep -r "sk-\|pk_\|AKIA" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" src/; then
+            echo "❌ خطأ: تم العثور على API keys"
+            exit 1
+          fi
+
+          echo "✅ فحص الأمان مكتمل"
+
+      - name: 📊 إحصائيات المشروع
+        run: |
+          echo "📊 إحصائيات المشروع:"
+          echo "عدد ملفات TypeScript: $(find src -name '*.ts' -o -name '*.tsx' | wc -l)"
+          echo "عدد المكونات: $(find src/components -name '*.tsx' | wc -l)"
+          echo "عدد الصفحات: $(find src/pages -name '*.tsx' | wc -l)"
+          echo "حجم مجلد src: $(du -sh src | cut -f1)"
+
+  security-scan:
+    name: فحص أمان متقدم
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 استنساخ الكود
+        uses: actions/checkout@v4
+
+      - name: 🔍 فحص التبعيات للثغرات الأمنية
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: 📦 تثبيت وفحص
+        run: |
+          npm ci
+          npm audit --audit-level high --production
+
+      - name: 🛡️ فحص Secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
