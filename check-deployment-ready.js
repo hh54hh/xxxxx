@@ -109,14 +109,18 @@ try {
   const supabaseContent = fs.readFileSync("src/lib/supabase.ts", "utf8");
 
   const hasConfigImport = supabaseContent.includes('from "./config"');
-  const hasNoThrowError = !supabaseContent.includes("throw new Error");
+  const hasNoThrowError = !supabaseContent.includes("throw new Error(");
+  const hasSupabaseConfig = supabaseContent.includes("supabaseConfig.url");
 
   console.log(`   ${hasConfigImport ? "✅" : "❌"} استيراد ملف الإعدادات`);
   console.log(`   ${hasNoThrowError ? "✅" : "❌"} إزالة رسائل الخطأ المانعة`);
+  console.log(
+    `   ${hasSupabaseConfig ? "✅" : "❌"} استخدام إعدادات supabaseConfig`,
+  );
 
   checks.push({
     name: "تحديثات supabase.ts",
-    status: hasConfigImport && hasNoThrowError,
+    status: hasConfigImport && hasNoThrowError && hasSupabaseConfig,
   });
 } catch (error) {
   console.log("   ❌ خطأ في فحص التحديثات");
