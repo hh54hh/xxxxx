@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
-export default function Index() {
+function Index() {
   const navigate = useNavigate();
 
   return (
@@ -34,3 +34,5 @@ export default function Index() {
     </div>
   );
 }
+
+export default Index;
